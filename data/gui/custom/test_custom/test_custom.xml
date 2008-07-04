@@ -1,0 +1,80 @@
+<?xml version="1.0" standalone="no" ?>
+<!-- this is a mtp-target gui resource -->
+<resource>
+	<object class="CGuiScript">
+		<filename>test_custom.lua</filename>
+	</object>
+	<object class="CGuiFrame" name="serverListFrame">
+		<alignment>eAlignRight|eAlignUp</alignment>
+		<minSize>0,120</minSize>
+		<position>0,0</position>
+    <script>
+      <onLoad>
+        test_func();
+      </onLoad>
+    </script>
+		<element>
+			<object class="CGuiVBox" name="serverVbox0">
+				<alignment>eAlignExpandHorizontal|eAlignExpandVertical</alignment>
+				<element>
+					<object class="CGuiText" name="serverListTitle">
+						<alignment>eAlignCenterHorizontal|eAlignCenterVertical</alignment>
+						<string> Test Frame </string>
+					</object>
+					<object class="CGuiSpacer" name="spacer">
+						<minSize>0,20</minSize>
+					</object>
+					<object class="CGuiVBox" name="serverVbox">
+						<alignment>eAlignExpandHorizontal|eAlignExpandVertical</alignment>
+						<element>
+							<object class="CGuiListView" name="serverListView">
+								<element>
+									<object class="CGuiHBox" name="TestHboxh">
+										<element>
+											<object class="CGuiText">
+												<string>Name</string>
+											</object>
+										</element>
+									</object>
+								</element>
+							</object>
+						</element>
+					</object>
+					<object class="CGuiSpacer" name="spacer">
+						<minSize>0,20</minSize>
+					</object>
+					<object class="CGuiHBox">
+						<element>
+							<object class="CGuiButton">
+						    <script>
+						      <onClick>
+										test_kick();
+						      </onClick>
+						    </script>
+								<minSize>0,0</minSize>
+								<element>
+									<object class="CGuiText">
+										<string>Kick</string>
+									</object>
+								</element>
+							</object>
+							<object class="CGuiButton">
+						    <script>
+						      <onClick>
+										test_ban();
+						      </onClick>
+						    </script>
+								<minSize>0,0</minSize>
+								<element>
+									<object class="CGuiText">
+										<string>Ban</string>
+									</object>
+								</element>
+							</object>
+						</element>
+					</object>
+				</element>
+			</object>
+		</element>
+	</object>
+</resource>

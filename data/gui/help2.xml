@@ -1,0 +1,108 @@
+<?xml version="1.0" standalone="no" ?>
+<!-- this is a mtp-target gui resource -->
+<resource>
+  <object class="CGuiFrame" name="help2Frame">
+    <minSize>300,300</minSize>
+    <position>0,0</position>
+    <alignment>eAlignCenterHorizontal|eAlignCenterVertical</alignment>
+    <element>
+      <object class="CGuiVBox">
+        <alignment>eAlignUp|eAlignLeft</alignment>
+        <element>
+
+          <!-- On the ramp -->
+          <object class="CGuiSpacer"><minHeight>10</minHeight></object>
+          <object class="CGuiText"><string>HelpOnRamp</string></object>
+          <object class="CGuiSpacer"><minHeight>10</minHeight></object>
+
+          <object class="CGuiHBox">
+            <alignment>eAlignUp|eAlignLeft</alignment>
+            <element>
+              <object class="CGuiKey" key="←"/><object class="CGuiKey" key="→"/>
+              <object class="CGuiText"><string>HelpRampLeftRight</string></object>
+            </element>
+          </object>
+
+          <object class="CGuiHBox">
+            <alignment>eAlignUp|eAlignLeft</alignment>
+            <element>
+              <object class="CGuiKey" key="↑"/>
+              <object class="CGuiText"><string>HelpRampUp</string></object>
+            </element>
+          </object>
+
+          <object class="CGuiHBox">
+            <alignment>eAlignUp|eAlignLeft</alignment>
+            <element>
+              <object class="CGuiKey" key="↓"/>
+              <object class="CGuiText"><string>HelpRampDown</string></object>
+            </element>
+          </object>
+
+          <object class="CGuiHBox">
+            <alignment>eAlignUp|eAlignLeft</alignment>
+            <element>
+              <object class="CGuiKey" key="Ctrl"/>
+              <object class="CGuiText"><string>HelpRampCtrl</string></object>
+            </element>
+          </object>
+
+          <!-- On the ramp -->
+          <object class="CGuiSpacer"><minHeight>20</minHeight></object>
+          <object class="CGuiText"><string>HelpFlying</string></object>
+          <object class="CGuiSpacer"><minHeight>10</minHeight></object>
+
+          <object class="CGuiHBox">
+            <alignment>eAlignUp|eAlignLeft</alignment>
+            <element>
+              <object class="CGuiKey" key="←"/><object class="CGuiKey" key="→"/>
+              <object class="CGuiText"><string>HelpFlyLeftRight</string></object>
+            </element>
+          </object>
+
+          <object class="CGuiHBox">
+            <alignment>eAlignUp|eAlignLeft</alignment>
+            <element>
+              <object class="CGuiKey" key="↑"/>
+              <object class="CGuiText"><string>HelpFlyUp</string></object>
+            </element>
+          </object>
+
+          <object class="CGuiHBox">
+            <alignment>eAlignUp|eAlignLeft</alignment>
+            <element>
+              <object class="CGuiKey" key="↓"/>
+              <object class="CGuiText"><string>HelpFlyDown</string></object>
+            </element>
+          </object>
+
+          <object class="CGuiHBox">
+            <alignment>eAlignUp|eAlignLeft</alignment>
+            <element>
+              <object class="CGuiKey" key="Ctrl"/>
+              <object class="CGuiText"><string>HelpFlyCtrl</string></object>
+            </element>
+          </object>
+
+          <object class="CGuiSpacer"><minHeight>10</minHeight></object>
+          <object class="CGuiText"><string>HelpOpenHelp</string></object>
+          <object class="CGuiHBox">
+            <alignment>eAlignCenterHorizontal|eAlignCenterVertical</alignment>
+            <element>
+              <object class="CGuiButton" name="bPrevious">
+                <minSize>100,0</minSize><element><object class="CGuiText"><string>GuiPrevious</string></object></element>
+              </object>
+              <object class="CGuiButton" name="bClose">
+                <element><object class="CGuiText"><string>GuiClose</string></object></element>
+              </object>
+              <object class="CGuiButton" name="bNext">
+                <minSize>100,0</minSize><element><object class="CGuiText"><string>GuiNext</string></object></element>
+              </object>
+            </element>
+          </object>
+
+        </element>
+      </object>
+    </element>
+  </object>
+</resource>

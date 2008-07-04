@@ -1,0 +1,15 @@
+<?xml version="1.0" standalone="no" ?>
+<!-- this is a mtp-target gui resource -->
+<resource>
+  <object class="CGuiFrame" name="errorFrame">
+    <minSize>400,0</minSize>
+    <position>0,100</position>
+    <alignment>eAlignUp|eAlignCenterHorizontal</alignment>
+    <element>
+      <object class="CGuiText" name="errorReason">
+        <string></string>
+        <isI18N>false</isI18N>
+      </object>
+    </element>
+  </object>
+</resource>

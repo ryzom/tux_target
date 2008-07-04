@@ -1,0 +1,13 @@
+<?xml version="1.0" standalone="no" ?>
+<!-- this is a mtp-target resource -->
+<resource>
+	<server name="Easy" address="mtp-target.dyndns.org">
+		<port>51574</port>
+	</server>
+	<server name="Expert" address="mtp-target.dyndns.org">
+		<port>51575</port>
+	</server>
+	<server name="Testing" address="skeet.dyndns.org">
+		<port>51574</port>
+	</server>
+</resource>

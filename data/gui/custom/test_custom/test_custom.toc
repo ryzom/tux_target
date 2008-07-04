@@ -1,0 +1,4 @@
+<?xml version="1.0" standalone="no" ?>
+<resource>
+	<gui filename="test_custom.xml"></gui>
+</resource>

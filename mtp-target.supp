@@ -1,0 +1,10 @@
+{
+   kdfjkdfh
+   Memcheck:Cond
+   obj:*libGLcore.so*
+}
+{
+   kdfjkdfh
+   Memcheck:Cond
+   obj:*libGL.so*
+}

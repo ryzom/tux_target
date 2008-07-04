@@ -1,0 +1,75 @@
+<?xml version="1.0" standalone="no" ?>
+<!-- this is a mtp-target gui resource -->
+<resource>
+  <object class="CGuiFrame" name="help3Frame">
+    <minSize>300,300</minSize>
+    <position>0,0</position>
+    <alignment>eAlignCenterHorizontal|eAlignCenterVertical</alignment>
+    <element>
+      <object class="CGuiVBox">
+        <alignment>eAlignUp|eAlignLeft</alignment>
+        <element>
+
+          <object class="CGuiHBox"><alignment>eAlignLeft</alignment><element>
+              <object class="CGuiKey" key="F1"/><object class="CGuiText"><string>HelpSwitchHelp</string></object>
+          </element></object>
+
+          <object class="CGuiHBox"><alignment>eAlignLeft</alignment><element>
+              <object class="CGuiKey" key="F4"/><object class="CGuiText"><string>HelpVote</string></object>
+          </element></object>
+
+          <object class="CGuiHBox"><alignment>eAlignLeft</alignment><element>
+              <object class="CGuiKey" key="F5"/><object class="CGuiText"><string>HelpSwitchMusic</string></object>
+          </element></object>
+
+          <object class="CGuiHBox"><alignment>eAlignLeft</alignment><element>
+              <object class="CGuiKey" key="F6"/><object class="CGuiText"><string>HelpPreviousMusic</string></object>
+          </element></object>
+
+          <object class="CGuiHBox"><alignment>eAlignLeft</alignment><element>
+              <object class="CGuiKey" key="F7"/><object class="CGuiText"><string>HelpNextMusic</string></object>
+          </element></object>
+
+          <object class="CGuiHBox"><alignment>eAlignLeft</alignment><element>
+              <object class="CGuiKey" key="F9"/><object class="CGuiText"><string>HelpFollowPrevious</string></object>
+          </element></object>
+
+          <object class="CGuiHBox"><alignment>eAlignLeft</alignment><element>
+              <object class="CGuiKey" key="F10"/><object class="CGuiText"><string>HelpFollowNext</string></object>
+          </element></object>
+
+          <object class="CGuiHBox"><alignment>eAlignLeft</alignment><element>
+              <object class="CGuiKey" key="F11"/><object class="CGuiText"><string>HelpFollowYou</string></object>
+          </element></object>
+
+          <object class="CGuiHBox"><alignment>eAlignLeft</alignment><element>
+              <object class="CGuiKey" key="F12"/><object class="CGuiText"><string>HelpSwitchExternalCamera</string></object>
+          </element></object>
+
+          <!--
+          <object class="CGuiHBox"><alignment>eAlignLeft</alignment><element>
+              <object class="CGuiKey" key="Shift"/><object class="CGuiText"><isI18N>false</isI18N><string>+</string></object>
+              <object class="CGuiKey" key="F2"/>
+              <object class="CGuiText"><string>HelpF2</string></object>
+          </element></object>
+          -->
+
+          <object class="CGuiSpacer"><minHeight>10</minHeight></object>
+          <object class="CGuiText"><string>HelpOpenHelp</string></object>
+          <object class="CGuiHBox">
+            <alignment>eAlignCenterHorizontal|eAlignCenterVertical</alignment>
+            <element>
+              <object class="CGuiButton" name="bPrevious">
+                <minSize>100,0</minSize><element><object class="CGuiText"><string>GuiPrevious</string></object></element>
+              </object>
+              <object class="CGuiButton" name="bClose">
+                <element><object class="CGuiText"><string>GuiClose</string></object></element>
+              </object>
+            </element>
+          </object>
+
+        </element>
+      </object>
+    </element>
+  </object>
+</resource>

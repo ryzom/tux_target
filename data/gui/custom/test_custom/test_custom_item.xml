@@ -1,0 +1,11 @@
+<?xml version="1.0" standalone="no" ?>
+<!-- this is a mtp-target gui resource -->
+<resource>
+	<object class="CGuiHBox">
+		<element>
+			<object class="CGuiText">
+				<string>text 1</string>
+			</object>
+		</element>
+	</object>
+</resource>
