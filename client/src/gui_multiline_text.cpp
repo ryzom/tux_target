@@ -1,27 +1,27 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-// 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-// Vianney Lecroart - gpl@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
 
 
 //
 // Includes
 //
-
 #include "stdpch.h"
 
 #include <nel/3d/u_material.h>
@@ -30,6 +30,7 @@
 #include "time_task.h"
 #include "gui_object.h"
 #include "font_manager.h"
+#include "resource_manager2.h"
 #include "gui_multiline_text.h"
 
 
@@ -37,8 +38,9 @@
 // Namespaces
 //
 
+using namespace std;
 using namespace NL3D;
-
+using namespace NLMISC;
 
 //
 // Variables
@@ -46,15 +48,14 @@ using namespace NL3D;
 
 static const float MultilineStringYSpace = 3;
 
-
 //
 // Functions
 //
 	
-template<class OutIt> void split(const ucstring& s, char sep, OutIt dest) 
+template<class OutIt> void split( const std::string& s, char sep, OutIt dest ) 
 {
-	ucstring::size_type left = 0;
-	ucstring::size_type right = left;
+	std::string::size_type left = 0;
+	std::string::size_type right = left;
 	while( left <= s.size())
 	{
 		right=left;
@@ -66,6 +67,9 @@ template<class OutIt> void split(const ucstring& s, char sep, OutIt dest)
 	}
 }
 
+
+
+
 CGuiMultilineText::CGuiMultilineText()
 {
 }
@@ -74,17 +78,17 @@ CGuiMultilineText::~CGuiMultilineText()
 {
 }
 
+
 void CGuiMultilineText::printf(float x, float y, int cursorIndex, CVector &cursorPos, const char *format ...)
 {
 	string str;
 	NLMISC_CONVERT_VARGS (str, format, 256);
 
-	print(x,y,cursorIndex,cursorPos,ucstring(str));
+	print(x,y,cursorIndex,cursorPos,str);
 }
 
-void CGuiMultilineText::print(float x, float y, int cursorIndex, CVector &cursorPos, const ucstring &str)
+void CGuiMultilineText::print(float x, float y, int cursorIndex, CVector &cursorPos, const string &str)
 {
-	H_AUTO2;
 	if(str.size()==0)
 	{
 		cursorPos.x = x;
@@ -92,30 +96,26 @@ void CGuiMultilineText::print(float x, float y, int cursorIndex, CVector &cursor
 		return;
 	}
 
-	static float StringHeight = 0.0f;
-	static float StringLine = 0.0f;
+	UTextContext::CStringInfo stringInfo = CFontManager::getInstance().guiTextContext().getStringInfo(ucstring(str));
 
-	if(StringHeight == 0.0f)
-	{
-		UTextContext::CStringInfo defaultStringInfo = CFontManager::instance().textContext(CFontManager::TCGui).getStringInfo(ucstring("Yg"));
-		StringHeight = defaultStringInfo.StringHeight; //to find max height
-		StringLine = defaultStringInfo.StringLine;
-	}
+	UTextContext::CStringInfo defaultStringInfo = CFontManager::getInstance().guiTextContext().getStringInfo(ucstring("Yg"));
+	float StringHeight = defaultStringInfo.StringHeight; //to find max height
+	float StringLine = defaultStringInfo.StringLine;
 
-	vector<ucstring> vstr;
-	split(str, '\n', back_inserter(vstr));
+	std::vector<std::string> vstr;
+	split(str, '\n', std::back_inserter(vstr));
 	int subStringStart = 0;
-	for( vector<ucstring>::size_type i = 0; i < vstr.size(); ++i ) 
+	for( std::vector<std::string>::size_type i = 0; i < vstr.size(); ++i ) 
 	{
 		int subStringLen = vstr[i].size();
-		CFontManager::instance().textContext(CFontManager::TCGui).printAt (CGuiObject::ToProportionalX(x), 1.0f - CGuiObject::ToProportionalY(y - StringLine + StringHeight), ucstring(ucstring(vstr[i])));
+		CFontManager::getInstance().guiTextContext().printAt (CGuiObject::ToProportionalX(x), 1.0f - CGuiObject::ToProportionalY(y - StringLine + StringHeight), ucstring(ucstring(vstr[i])));
 
 		if(subStringStart <= cursorIndex && cursorIndex <= subStringStart+subStringLen)
 		{
-			ucstring subSubString = vstr[i].substr(0,cursorIndex-subStringStart);
-			float w = CFontManager::instance().getStringWidth(CFontManager::TCGui, ucstring(subSubString));
-			cursorPos.y = y - 12 + StringHeight - StringLine + 1;
-			cursorPos.x = x + w;
+			string subSubString = vstr[i].substr(0,cursorIndex-subStringStart);
+			UTextContext::CStringInfo subStringInfo = CFontManager::getInstance().guiTextContext().getStringInfo(ucstring(subSubString));
+			cursorPos.y = y - /*TODO ace*/12 + StringHeight - StringLine + 1;
+			cursorPos.x = x + subStringInfo.StringWidth;
 		}
 
 		y += StringHeight + MultilineStringYSpace;
@@ -124,26 +124,21 @@ void CGuiMultilineText::print(float x, float y, int cursorIndex, CVector &cursor
 }
 	
 
-CVector CGuiMultilineText::size(bool shaded, int size, const ucstring &str)
+CVector CGuiMultilineText::size(bool shaded,int size,const std::string &str)
 {
-	CFontManager::instance().textContext(CFontManager::TCGui).setFontSize (size);
-	CFontManager::instance().textContext(CFontManager::TCGui).setShaded (shaded);
+	CFontManager::getInstance().guiTextContext().setFontSize (size);
+	CFontManager::getInstance().guiTextContext().setShaded(shaded);
 
-	static float StringHeight = 0.0f;
-	static float StringLine = 0.0f;
-
-	if(StringHeight == 0.0f)
-	{
-		UTextContext::CStringInfo defaultStringInfo = CFontManager::instance().textContext(CFontManager::TCGui).getStringInfo(ucstring("Yg"));
-		StringHeight = defaultStringInfo.StringHeight; //to find max height
-		StringLine = defaultStringInfo.StringLine;
-	}
-
+	UTextContext::CStringInfo defaultStringInfo = CFontManager::getInstance().guiTextContext().getStringInfo(ucstring("Yg"));
+	float StringHeight = defaultStringInfo.StringHeight; //to find max height
+	float StringLine = defaultStringInfo.StringLine;
+	
+	UTextContext::CStringInfo stringInfo = CFontManager::getInstance().guiTextContext().getStringInfo(ucstring(str));
 	CVector res;
 	res.y = StringHeight;
 	
-	vector<ucstring> vstr;
-	split(str, '\n', back_inserter(vstr));
+	std::vector<std::string> vstr;
+	split(str, '\n', std::back_inserter(vstr));
 	res.y *= vstr.size();
 
 	if(vstr.size()>1)
@@ -151,12 +146,15 @@ CVector CGuiMultilineText::size(bool shaded, int size, const ucstring &str)
 	
 	res.x = 0;
 
-	for( vector<ucstring>::size_type i = 0; i < vstr.size(); ++i ) 
+	for( std::vector<std::string>::size_type i = 0; i < vstr.size(); ++i ) 
 	{
-		float w = CFontManager::instance().getStringWidth(CFontManager::TCGui, ucstring(vstr[i]));
-		if(w > res.x)
-			res.x = w;
+		UTextContext::CStringInfo subStringInfo = CFontManager::getInstance().guiTextContext().getStringInfo(ucstring(vstr[i]));
+		if(subStringInfo.StringWidth>res.x)
+			res.x = subStringInfo.StringWidth;
 	}
 	
 	return res;
 }
+
+
+

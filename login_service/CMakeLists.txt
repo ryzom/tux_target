@@ -1,0 +1,35 @@
+FILE(GLOB SRC *.cpp *.h)
+
+ADD_EXECUTABLE(tux-target-ls WIN32 ${SRC})
+
+INCLUDE_DIRECTORIES(
+		${LIBXML2_INCLUDE_DIR}
+		${NEL_INCLUDE_DIR}
+		${MYSQL_INCLUDE_DIR})
+
+IF(WIN32)
+	TARGET_LINK_LIBRARIES(tux-target-ls	optimized ${NELMISC_LIBRARY}	debug ${NELMISC_LIBRARY_DEBUG} 
+										optimized ${NELNET_LIBRARY}		debug ${NELNET_LIBRARY_DEBUG} 
+										${PLATFORM_LINKFLAGS}
+										${MYSQL_LIBRARIES}
+										${ZLIB_LIBRARY}
+										${FREETYPE_LIBRARY}
+										${PNG_LIBRARY}
+										${JPEG_LIBRARY})
+
+	SET_TARGET_PROPERTIES(tux-target-ls PROPERTIES 
+		PROJECT_LABEL "Server: Tux Target LS"
+		LINK_FLAGS_DEBUG "/NODEFAULTLIB:libc;libcmt;libcmtd;msvcrt"
+		LINK_FLAGS_RELEASE "/NODEFAULTLIB:libc;libcmt;libcmtd;msvcrtd")
+ELSE(WIN32)
+	TARGET_LINK_LIBRARIES(tux-target-ls	${NELMISC_LIBRARY} 
+										${NELNET_LIBRARY} 
+										${PLATFORM_LINKFLAGS}
+										${MYSQL_LIBRARIES}
+										${ZLIB_LIBRARY})
+ENDIF(WIN32)
+
+ADD_DEFINITIONS(-DMT_SERVER -DMTPT_SERVER)
+
+INSTALL(TARGETS tux-target-ls RUNTIME DESTINATION games)
+INSTALL(FILES login_service.cfg DESTINATION games)

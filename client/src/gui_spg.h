@@ -36,7 +36,7 @@ public:
 };
 
 
-typedef map<void *,guiSPGCounter *> pointer2Counter;
+typedef std::map<void *,guiSPGCounter *> pointer2Counter;
 
 class guiSPGManager
 {

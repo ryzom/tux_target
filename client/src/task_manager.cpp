@@ -1,21 +1,22 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-// 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-// Vianney Lecroart - gpl@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
 
 
 //
@@ -35,7 +36,15 @@
 // Namespaces
 //
 
+using namespace std;
 using namespace NLMISC;
+
+
+//
+// Variables
+//
+
+CSynchronized<PauseFlags> taskManagerPauseFlags("taskManagerPauseFlags");
 
 
 //
@@ -119,9 +128,9 @@ void CTaskManager::execute()
 		CHTimer::endBench();
 	}
 
-	for(list<ITask*>::reverse_iterator it = Tasks.rbegin(); it != Tasks.rend(); it++)
+	for(std::list<ITask*>::reverse_iterator it = Tasks.rbegin(); it != Tasks.rend(); it++)
 	{
-		//nlinfo("Release %s", (*it)->name().c_str());
+//		nlinfo("Release %s", (*it)->name().c_str());
 		(*it)->release();
 	}
 	Tasks.clear();
@@ -132,7 +141,7 @@ void CTaskManager::remove(ITask &task)
 {
 	//nlinfo("Removing task %s", task.name().c_str());
 	// release and remove task from Task
-	for(list<ITask*>::iterator it = Tasks.begin(); it != Tasks.end();)
+	for(std::list<ITask*>::iterator it = Tasks.begin(); it != Tasks.end();)
 	{
 		if(&task == (*it))
 		{
@@ -145,7 +154,7 @@ void CTaskManager::remove(ITask &task)
 		}
 	}
 	// remove task from OrderSortedTasks
-	for(list<ITask*>::iterator it = OrderSortedTasks.begin(); it != OrderSortedTasks.end();)
+	for(std::list<ITask*>::iterator it = OrderSortedTasks.begin(); it != OrderSortedTasks.end();)
 	{
 		if(&task == (*it))
 		{
@@ -181,7 +190,7 @@ void CTaskManager::add(ITask &task, sint32 order, bool startNow)
 
 	task.Order = order;
 
-	string n = task.name() + "Update";
+	std::string n = task.name() + "Update";
 	strcpy(task.NameUpdate, n.c_str());
 	n = task.name() + "Render";
 	strcpy(task.NameRender, n.c_str());
@@ -234,18 +243,18 @@ NLMISC_COMMAND(displayTasks, "display all task", "")
 
 	log.displayNL("There's %d tasks:", CTaskManager::instance().Tasks.size());
 	log.displayNL("Init order call:");
-	for(list<ITask*>::iterator it = CTaskManager::instance().Tasks.begin(); it != CTaskManager::instance().Tasks.end(); it++)
+	for(std::list<ITask*>::iterator it = CTaskManager::instance().Tasks.begin(); it != CTaskManager::instance().Tasks.end(); it++)
 	{
 		//log.displayNL("  %s %s", (*it)->name().c_str(), ((*it)->Execute?"Running":"Stop"));
 	}
 	log.displayNL("Update order call:");
-	for(list<ITask*>::iterator it = CTaskManager::instance().OrderSortedTasks.begin(); it != CTaskManager::instance().OrderSortedTasks.end(); it++)
+	for(std::list<ITask*>::iterator it = CTaskManager::instance().OrderSortedTasks.begin(); it != CTaskManager::instance().OrderSortedTasks.end(); it++)
 	{
 		log.displayNL("  %s", (*it)->name().c_str());
 		(*it)->render();
 	}
 	log.displayNL("Release order call:");
-	for(list<ITask*>::reverse_iterator it = CTaskManager::instance().Tasks.rbegin(); it != CTaskManager::instance().Tasks.rend(); it++)
+	for(std::list<ITask*>::reverse_iterator it = CTaskManager::instance().Tasks.rbegin(); it != CTaskManager::instance().Tasks.rend(); it++)
 	{
 		log.displayNL("  %s", (*it)->name().c_str());
 		(*it)->release();

@@ -1,0 +1,97 @@
+
+  ____ |\________|\_________|\____
+  \   `|   /\__     __/\_____    /
+ _/  \  /  \__/     \_ /_   /   /
+ \____\/    /\___    / _/   ___/
+%%%%%%/____/[SnS]|__/%%\_____/%%%%%
+    
+            presents
+
+  
+           MTP TARGET
+
+
+
+Code            :  Ace, Skeet
+Gfx 2D          :  Paul, 9dan
+Gfx 3D          :  9dan
+Music           :  Hulud/Digital Murder
+SFX             :  Garou
+Additional code :  Muf, Mickey, Hades
+
+
+
+       http://www.melting-pot.org
+
+
+
+LOGIN
+-----
+There is an identification process to retreive your score.
+If it's the first time that you are connecting to the server, you
+must enter a new login and choose a password.. Please do not forget
+this password, as it MUST be used every time you want to connect to the server
+
+The login and password are all lowercase, and only alpha numberical characters
+are allowed, up to 10 characters in length.
+
+The login name and password are stored locally in the client configuration file
+to be used automatically the next time you log on.
+
+
+THE GAME
+--------
+
+The goal is to jump and to land on the best target to score points.
+
+You start on the top of a ramp, you must increase your speed to
+fly away. 
+
+Keyboard Commands:
+
+Up Arrow	: Accelerate
+Down Arrow	: Deccelerate
+Right Arrow	: Move Right
+Left Arrow	: Move Left
+Right CRTL	: Open / Close the ball
+
+When you are in the sky, you must open the ball pressing RIGHT CONTROL.
+Now you are in flying mode. Left and Right keys always control the direction.
+The Up key increase your speed but you will fall faster. When you use the Down key,
+your speed decrease but you will fall slower.
+
+You must now manage to go to the best target you think you can reach.
+
+When you are near the target, you must again press the RIGHT CTRL Key to go back
+in rolling mode and fall nearly vertically, bounce and stop on the target.
+
+If you fall in the water, you'll win 0 point even if you previously touched a target.
+
+!Warning!, other players can kick you out the target, even if you are stopped on it.
+
+You can only open and close your ball once during the session.
+
+
+CONTROLS
+--------
+
+F2 : Take a screenshot
+
+F9 : Observe the next player (you can do that at anytime)
+F10 : Observe the previous player (you can do that at anytime)
+F11 : Go back to your view
+
+TAB : Display players name and score
+ESC : Go back to OS
+
+Any other characters are used for the Chat.
+Press RETURN at any time to send the current chat line.
+
+
+
+USED LIB
+--------
+
+NeL for 3d engine and network and server engine (http://www.nevrax.org)
+ODE for physics engine (http://www.q12.org/ode)
+fmod for sound engine (http://www.fmod.org)

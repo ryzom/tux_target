@@ -1,23 +1,23 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-// 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-// Vianney Lecroart - gpl@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
 
-//
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
+
 // Includes
 //
 
@@ -25,6 +25,7 @@
 
 #include "3d_task.h"
 #include "time_task.h"
+#include "resource_manager2.h"
 #include "gui_listview.h"
 #include <nel/3d/u_material.h>
 #include "gui_xml.h"
@@ -34,13 +35,28 @@
 // Namespaces
 //
 
-using namespace NLMISC;
+using namespace std;
 using namespace NL3D;
+using namespace NLMISC;
 
 
 //
-// Functions
+// Variables
 //
+
+const char CGuiListView::className[] = "CGuiListView";
+
+Lunar<CGuiListView>::RegType CGuiListView::methods[] = 
+{
+	bind_method(CGuiListView, getCount),	
+	bind_method(CGuiListView, getElement),	
+	bind_method(CGuiListView, removeElement),	
+	bind_method(CGuiListView, getName),	
+	bind_method(CGuiListView, getSelected),	
+	bind_method(CGuiListView, pushBack),	
+	{0,0}
+};
+
 
 int CGuiListView::getName(lua_State *luaSession)
 {
@@ -142,48 +158,48 @@ void CGuiListViewManager::init()
 	
 	string res;
 
-	res = CPath::lookup("row_listview.tga");
-	_rowTexture = C3DTask::instance().driver().createTextureFile(res);
+	res = CResourceManager::getInstance().get("row_listview.tga");
+	_rowTexture = C3DTask::getInstance().driver().createTextureFile(res);
 	nlassert(_rowTexture);
 	
 	_rowTexture->setWrapS(UTexture::Clamp);
 	
 	
-	_rowMaterial = C3DTask::instance().createMaterial();
+	_rowMaterial = C3DTask::getInstance().createMaterial();
 	_rowMaterial.setTexture(_rowTexture);
 	_rowMaterial.setBlend(true);
 	_rowMaterial.setZFunc(UMaterial::always);
 	_rowMaterial.setDoubleSided();
 	
-	res = CPath::lookup("selected_row_listview.tga");
-	_selectedRowTexture = C3DTask::instance().driver().createTextureFile(res);
+	res = CResourceManager::getInstance().get("selected_row_listview.tga");
+	_selectedRowTexture = C3DTask::getInstance().driver().createTextureFile(res);
 	nlassert(_selectedRowTexture);
 	
 	_selectedRowTexture->setWrapS(UTexture::Clamp);
 	
 	
-	_selectedRowMaterial = C3DTask::instance().createMaterial();
+	_selectedRowMaterial = C3DTask::getInstance().createMaterial();
 	_selectedRowMaterial.setTexture(_selectedRowTexture);
 	_selectedRowMaterial.setBlend(true);
 	_selectedRowMaterial.setZFunc(UMaterial::always);
 	_selectedRowMaterial.setDoubleSided();
 	
-	res = CPath::lookup("header_listview.tga");
-	_headerTexture = C3DTask::instance().driver().createTextureFile(res);
+	res = CResourceManager::getInstance().get("header_listview.tga");
+	_headerTexture = C3DTask::getInstance().driver().createTextureFile(res);
 	nlassert(_headerTexture);
 	
 	_headerTexture->setWrapS(UTexture::Clamp);
 	
 	
-	_headerMaterial = C3DTask::instance().createMaterial();
+	_headerMaterial = C3DTask::getInstance().createMaterial();
 	_headerMaterial.setTexture(_headerTexture);
 	_headerMaterial.setBlend(true);
 	_headerMaterial.setZFunc(UMaterial::always);
 	_headerMaterial.setDoubleSided();
 	
-	//CGuiHBox::xmlRegister();
-	//CGuiVBox::xmlRegister();
-	CGuiListView::xmlRegister();
+	//CGuiHBox::XmlRegister();
+	//CGuiVBox::XmlRegister();
+	CGuiListView::XmlRegister();
 	
 }
 	
@@ -236,7 +252,7 @@ CGuiListView::CGuiListView()
 	_spacing = 0;
 	_selectedRow = 1;
 	eventBehaviour = 0;
-	quad.material(CGuiListViewManager::instance().rowMaterial());
+	quad.material(CGuiListViewManager::getInstance().rowMaterial());
 }
 
 CGuiListView::~CGuiListView()
@@ -303,7 +319,6 @@ void CGuiListView::init(CGuiXml *xml,xmlNodePtr node)
 
 void CGuiListView::_render(const CVector &pos,CVector &maxSize)
 {
-	H_AUTO2;
 	uint rowCount = 0;
 	bool _pressed = false;
 	list<guiSPG<CGuiHBox> >::iterator it;
@@ -416,13 +431,13 @@ void CGuiListView::_render(const CVector &pos,CVector &maxSize)
 			CGuiObject *obj = *it2;
 			CGuiStretchedQuad quad;
 			if(rowCount==0)
-				quad.material(CGuiListViewManager::instance().headerMaterial());
+				quad.material(CGuiListViewManager::getInstance().headerMaterial());
 			else
 			{
 				if(rowCount==_selectedRow)
-					quad.material(CGuiListViewManager::instance().selectedRowMaterial());
+					quad.material(CGuiListViewManager::getInstance().selectedRowMaterial());
 				else
-					quad.material(CGuiListViewManager::instance().rowMaterial());
+					quad.material(CGuiListViewManager::getInstance().rowMaterial());
 			}
 			//		quad.size(CVector(obj->width(),obj->height()-0,0));
 			CVector qSize= obj->renderedSize();
@@ -436,20 +451,20 @@ void CGuiListView::_render(const CVector &pos,CVector &maxSize)
 			rcount++;
 		}
 
-		CVector mousePos = CGuiObjectManager::instance().mouseListener().position();
+		CVector mousePos = CGuiObjectManager::getInstance().mouseListener().position();
 		
 		if(row->isIn(mousePos,row->renderedPos(),row->renderedSize()))
 		{
-			CVector mousePressedPos = CGuiObjectManager::instance().mouseListener().pressedPosition();
+			CVector mousePressedPos = CGuiObjectManager::getInstance().mouseListener().pressedPosition();
 			
-			if(CGuiObjectManager::instance().mouseListener().ButtonDown)
+			if(CGuiObjectManager::getInstance().mouseListener().ButtonDown)
 			{
 				if(row->isIn(mousePressedPos,row->renderedPos(),row->renderedSize()))
 					_selectedRow = rowCount;
 				else
 					_selectedRow = 0;
 			}
-			if(CGuiObjectManager::instance().mouseListener().DoubleClicked)
+			if(CGuiObjectManager::getInstance().mouseListener().DoubleClicked)
 			{
 				if(eventBehaviour)
 					eventBehaviour->onPressed(_selectedRow-1);
@@ -509,31 +524,35 @@ void CGuiListView::luaPush(lua_State *L)
 }
 
 
-void CGuiListView::xmlRegister()
+void CGuiListView::XmlRegister()
 {
-	CGuiObjectManager::instance().registerClass("CGuiListView",CGuiListView::create);
+	CGuiObjectManager::getInstance().registerClass("CGuiListView",CGuiListView::Create);
 }
 
-CGuiObject *CGuiListView::create()
+CGuiObject *CGuiListView::Create()
 {
 	CGuiObject *res = new CGuiListView;
 	
 	return res;	
 }
 
+//
+//
+//
 
-//
-//
-//
 
 CGuiListViewEventBehaviour::CGuiListViewEventBehaviour()
 {
+	
 }
 
 CGuiListViewEventBehaviour::~CGuiListViewEventBehaviour()
 {
+	
 }
 
 void CGuiListViewEventBehaviour::onPressed(int rowId)
 {
+	
 }
+

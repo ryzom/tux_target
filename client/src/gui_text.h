@@ -1,24 +1,30 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-// 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-// Vianney Lecroart - gpl@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
 
-#ifndef MT_GUI_TEXT_H
-#define MT_GUI_TEXT_H
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
+
+
+//
+// This is the main class that manages all other classes
+//
+
+#ifndef MTPT_GUI_TEXT_H
+#define MTPT_GUI_TEXT_H
 
 
 //
@@ -28,6 +34,7 @@
 #include "gui_object.h"
 
 
+
 //
 // Classes
 //
@@ -35,16 +42,19 @@
 class CGuiTextCursor
 {
 public:
-	static void _render(const NLMISC::CVector &position, int height);
-	static void reset();
+	static void Render(const NLMISC::CVector &position, int height);
+	static void Reset();
 private:
-	static NLMISC::TTime CursorBlinkTime;
+	static int _FrameCount;
 };
+
+
 
 class CGuiText : public CGuiObject
 {
-public:
-	CGuiText(const ucstring &text, bool i18n = true);
+	public:
+	CGuiText(lua_State *luaSession) {};
+	CGuiText(const std::string &text);
 	CGuiText();
 	virtual ~CGuiText();
 	
@@ -52,28 +62,22 @@ public:
 	virtual float _width();
 	virtual float _height();
 
-	void isEditable(bool isEditable) { IsEditable = isEditable; }
-	bool isEditable() const { return IsEditable; }
+	void isEditable(bool isEditable);
+	bool isEditable();
 	
-	void isEntry(bool isEntry) { IsEntry = isEntry; }
-	bool isEntry() const { return IsEntry; }
+	void isEntry(bool isEntry);
+	bool isEntry();
 	
-	void isPassword(bool isPassword) { IsPassword = isPassword; }
-	bool isPassword() const { return IsPassword; }
+	void isPassword(bool isPassword);
+	bool isPassword();
 	
-	void isMultiline(bool isMultiline) { IsMultiline = isMultiline; }
-	bool isMultiline() { return IsMultiline; }
-
-	void isI18N(bool isI18N) { IsI18N = isI18N; }
-	bool isI18N() const { return IsI18N; }
+	void isMultiline(bool isMultiline);
+	bool isMultiline();
 	
-	void cursorIndex(uint cursorIndex);
+	void cursorIndex(int cursorIndex);
 	uint cursorIndex();
 	
-	const ucstring &text() { return Text; }
-	void text(const ucstring &t);
-
-	void insert(ucchar c);
+	void insert(char c);
 
 	void cursorUp();
 	void cursorDown();
@@ -81,62 +85,48 @@ public:
 	void cursorRight();
 	void cursorHome();
 	void cursorEnd();
+	
+	std::string text;
 
-	static void xmlRegister();
-	static CGuiObject *create();
+	static void XmlRegister();
+	static CGuiObject *Create();
 	virtual void init(CGuiXml *xml,xmlNodePtr node);
 
 	virtual void luaPush(lua_State *L);
-
-	LUA_BEGIN(CGuiText)
-		bind_method(CGuiText, getName),	
-		bind_method(CGuiText, getString),	
-		bind_method(CGuiText, setString),	
-	LUA_END
-
+	static const char className[];	
+	static Lunar<CGuiText>::RegType methods[];	
 	int getName(lua_State *luaSession);
 	int getString(lua_State *luaSession);
 	int setString(lua_State *luaSession);
-
-	void setText(const ucstring &text);
-
-protected:
-
-	ucstring Text;
-
 private:
-
-	void init(const ucstring &text);
-
-	// cache system to speed up text rendering
-	NLMISC::CVector TextSize;
-
-	uint32 CursorIndex;
-	bool IsEditable;
-	bool IsEntry;
-	bool IsPassword;
-	bool IsMultiline;
-	bool IsI18N;
+	void _init(const std::string &text);
+	uint _cursorIndex;
+	bool _isEditable;
+	bool _isEntry;
+	bool _isPassword;
+	bool _isMultiline;
 };
+
 
 class CGuiTextPercent : public CGuiText
 {
 public:
-
 	CGuiTextPercent();
 	virtual ~CGuiTextPercent();
 	
 	virtual void _render(const NLMISC::CVector &pos, NLMISC::CVector &maxSize);
-	void ptrValue(float *ptrValue) { PtrValue = ptrValue; }
+	void ptrValue(float *ptrValue);
 
-	static void xmlRegister();
-	static CGuiObject *create();
+	static void XmlRegister();
+	static CGuiObject *Create();
 	virtual void init(CGuiXml *xml,xmlNodePtr node);
-
 private:
-	float *PtrValue;
+	float *_ptrValue;
 };
 
+
+
+	
 class CGuiTextManager : public NLMISC::CSingleton<CGuiTextManager>
 {
 public:
@@ -149,10 +139,10 @@ public:
 	NL3D::UMaterial entryMaterial();
 	
 protected:
-	NL3D::UTextureFile	*CursorTexture;
-	NL3D::UMaterial CursorMaterial;
-	NL3D::UTextureFile	*EntryTexture;
-	NL3D::UMaterial EntryMaterial;
+	NL3D::UTextureFile	*_cursorTexture;
+	NL3D::UMaterial _cursorMaterial;
+	NL3D::UTextureFile	*_entryTexture;
+	NL3D::UMaterial _entryMaterial;
 private:
 	
 };

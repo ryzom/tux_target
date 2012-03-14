@@ -1,21 +1,22 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-// 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-// Vianney Lecroart - gpl@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
 
 //
 // Includes
@@ -37,13 +38,21 @@
 #include "background_task.h"
 #include "level_manager.h"
 #include "config_file_task.h"
+#include "resource_manager2.h"
 
 
 //
 // Namespaces
 //
 
+using namespace std;
 using namespace NL3D;
+using namespace NLMISC;
+
+
+//
+// Variables
+//
 
 
 //
@@ -52,15 +61,19 @@ using namespace NL3D;
 	
 void CGameTask::init()
 {
-	CTaskManager::instance().add(CLevelManager::instance(), 60);
-	CTaskManager::instance().add(CHudTask::instance(), 1020);
-	CTaskManager::instance().add(CScoreTask::instance(), 1030);
-	CTaskManager::instance().add(CChatTask::instance(), 1040);
+	CTaskManager::getInstance().add(CLevelManager::getInstance(), 60);
+	CTaskManager::getInstance().add(CHudTask::getInstance(), 1020);
+	CTaskManager::getInstance().add(CScoreTask::getInstance(), 1030);
+	CTaskManager::getInstance().add(CChatTask::getInstance(), 1040);
 
-	//bool tocFound = false;
-	//tocFound =  CGuiCustom::instance().count()>0;
-	//if(!tocFound && CConfigFileTask::instance().configFile().getVar("CaptureMouse").asInt() == 1)
-	//C3DTask::instance().captureCursor(true);
+	bool tocFound = false;
+	//tocFound = CGuiCustom::getInstance().load("data/gui/custom/");
+	tocFound =  CGuiCustom::getInstance().count()>0;
+	if(!tocFound && CConfigFileTask::getInstance().configFile().getVar("CaptureMouse").asInt() == 1)
+		C3DTask::getInstance().captureCursor(true);
+
+	
+
 }
 
 void CGameTask::update()
@@ -69,7 +82,7 @@ void CGameTask::update()
 
 void CGameTask::render()
 {
-	C3DTask::instance().clear();
+	C3DTask::getInstance().clear();
 }
 
 void CGameTask::release()
@@ -79,9 +92,9 @@ void CGameTask::release()
 void CGameTask::stop()
 {
 	ITask::stop();
-	CLevelManager::instance().stop();
-	CHudTask::instance().stop();
-	CScoreTask::instance().stop();
-	CChatTask::instance().stop();
+	CLevelManager::getInstance().stop();
+	CHudTask::getInstance().stop();
+	CScoreTask::getInstance().stop();
+	CChatTask::getInstance().stop();
 }
 

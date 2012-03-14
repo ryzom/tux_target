@@ -1,21 +1,22 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-// 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-// Vianney Lecroart - gpl@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
 
 
 //
@@ -26,18 +27,24 @@
 
 #include "3d_task.h"
 #include "time_task.h"
+#include "resource_manager2.h"
 #include "gui_button.h"
 #include "gui_xml.h"
 
+
 #include <nel/3d/u_material.h>
-
-
 //
 // Namespaces
 //
 
-using namespace NLMISC;
+using namespace std;
 using namespace NL3D;
+using namespace NLMISC;
+
+
+//
+// Variables
+//
 
 
 //
@@ -51,15 +58,15 @@ struct buttonMaterialData
 	}
 	NL3D::UTextureFile	*texture;
 	NL3D::UMaterial material;
-	string filename;
+	std::string filename;
 };
 
 static buttonMaterialData buttonMaterials[] = 
 {
 	buttonMaterialData("hbutton-prelight.tga"),
 	buttonMaterialData("hbutton-insensitive.tga"),
-	buttonMaterialData("hbutton.tga"),
-	buttonMaterialData("hbutton-active.tga"),
+        buttonMaterialData("hbutton.tga"),
+        buttonMaterialData("hbutton-active.tga"),
 };
 
 
@@ -72,18 +79,18 @@ void CGuiButtonManager::init()
 
 	for(int i=0;i<buttonMaterialsSize;i++)
 	{
-		res = CPath::lookup(buttonMaterials[i].filename);
-		buttonMaterials[i].texture = C3DTask::instance().driver().createTextureFile(res);
+		res = CResourceManager::getInstance().get(buttonMaterials[i].filename);
+		buttonMaterials[i].texture = C3DTask::getInstance().driver().createTextureFile(res);
 		buttonMaterials[i].texture->setReleasable(false);
 		nlassert(buttonMaterials[i].texture);
-		buttonMaterials[i].material = C3DTask::instance().createMaterial();
+		buttonMaterials[i].material = C3DTask::getInstance().createMaterial();
 		buttonMaterials[i].material.setTexture(buttonMaterials[i].texture);
 		buttonMaterials[i].material.setBlend(true);
 		buttonMaterials[i].material.setZFunc(UMaterial::always);
 		buttonMaterials[i].material.setDoubleSided();
 	}
 
-	CGuiButton::xmlRegister();
+	CGuiButton::XmlRegister();
 	
 }
 	
@@ -107,14 +114,14 @@ NL3D::UMaterial CGuiButtonManager::material(TButtonMaterialId id)
 	return buttonMaterials[id].material;
 }
 
-//
-//
-//
 
+
+//
+//
+//
 void CGuiButton::_init()
 {
 	_pressed = false;
-	_visible = true;
 	eventBehaviour = 0;
 }
 
@@ -150,10 +157,10 @@ CGuiButton::CGuiButton(const string &normalBitmap, const string &activeBitmap)
 
 void CGuiButton::resetBitmap()
 {
-	_normalBitmap       = CGuiButtonManager::instance().material(CGuiButtonManager::eNormal);
-	_activeBitmap       = CGuiButtonManager::instance().material(CGuiButtonManager::eActive);
-	_prelightBitmap     = CGuiButtonManager::instance().material(CGuiButtonManager::ePrelight);
-	_insensitiveBitmap  = CGuiButtonManager::instance().material(CGuiButtonManager::eInsensitive);
+	_normalBitmap       = CGuiButtonManager::getInstance().material(CGuiButtonManager::eNormal);
+	_activeBitmap       = CGuiButtonManager::getInstance().material(CGuiButtonManager::eActive);
+	_prelightBitmap     = CGuiButtonManager::getInstance().material(CGuiButtonManager::ePrelight);
+	_insensitiveBitmap  = CGuiButtonManager::getInstance().material(CGuiButtonManager::eInsensitive);
 	_stretched          = true;
 }
 
@@ -195,25 +202,24 @@ void CGuiButton::resetBitmap(const string &normalBitmap, const string &activeBit
 
 CGuiButton::~CGuiButton()
 {
+	
 }
 
 void CGuiButton::_render(const CVector &pos, CVector &maxSize)
 {
-	H_AUTO2;
-	if(!_visible) return;
 	CGuiButtonManager::TButtonMaterialId buttonState = CGuiButtonManager::eNormal;
 	quad.color(CRGBA(255,255,255,255));
 	quad.offset(CVector(0,0,0));
 	quad.stretched(_stretched);	
 	
 	_pressed = false;
-	CVector mousePos = CGuiObjectManager::instance().mouseListener().position();
+	CVector mousePos = CGuiObjectManager::getInstance().mouseListener().position();
 
 	if(isIn(mousePos,pos,maxSize))
 	{
-		CVector mousePressedPos = CGuiObjectManager::instance().mouseListener().pressedPosition();
+		CVector mousePressedPos = CGuiObjectManager::getInstance().mouseListener().pressedPosition();
 		
-		if(CGuiObjectManager::instance().mouseListener().ButtonDown)
+		if(CGuiObjectManager::getInstance().mouseListener().ButtonDown)
 		{
 			if(isIn(mousePressedPos,pos,maxSize))
 				buttonState = CGuiButtonManager::eActive;
@@ -221,7 +227,7 @@ void CGuiButton::_render(const CVector &pos, CVector &maxSize)
 		else
 			buttonState = CGuiButtonManager::ePrelight;
 			
-		if(CGuiObjectManager::instance().mouseListener().Clicked && isIn(mousePressedPos,pos,maxSize))
+		if(CGuiObjectManager::getInstance().mouseListener().Clicked && isIn(mousePressedPos,pos,maxSize))
 		{
 			_onPressed();
 			_pressed = true;
@@ -230,6 +236,7 @@ void CGuiButton::_render(const CVector &pos, CVector &maxSize)
 	}
 	else
 		buttonState = CGuiButtonManager::eNormal;
+	
 
 	if(buttonState==CGuiButtonManager::eNormal)
 		quad.material(_normalBitmap);
@@ -267,7 +274,7 @@ void CGuiButton::onPressed()
 void CGuiButton::_onPressed()
 {
 	if(_onClickScript.size())
-		luaDoString(_xml->LuaState,_onClickScript.c_str());
+		lua_dostring(_xml->LuaState,_onClickScript.c_str());
 	if(eventBehaviour)
 		eventBehaviour->onPressed();
 	onPressed();
@@ -296,12 +303,12 @@ float CGuiButton::borderHeight()
 		return 0;
 };
 
-void CGuiButton::xmlRegister()
+void CGuiButton::XmlRegister()
 {
-	CGuiObjectManager::instance().registerClass("CGuiButton",CGuiButton::create);
+	CGuiObjectManager::getInstance().registerClass("CGuiButton",CGuiButton::Create);
 }
 
-CGuiObject *CGuiButton::create()
+CGuiObject *CGuiButton::Create()
 {
 	CGuiObject *res = new CGuiButton;
 	
@@ -334,3 +341,24 @@ void CGuiButton::init(CGuiXml *xml,xmlNodePtr node)
 	}
 
 }
+
+//
+//
+//
+
+
+CGuiButtonEventBehaviour::CGuiButtonEventBehaviour()
+{
+
+}
+
+CGuiButtonEventBehaviour::~CGuiButtonEventBehaviour()
+{
+
+}
+
+void CGuiButtonEventBehaviour::onPressed()
+{
+
+}
+

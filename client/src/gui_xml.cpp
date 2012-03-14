@@ -1,21 +1,22 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-// 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-// Vianney Lecroart - gpl@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
 
 
 //
@@ -24,6 +25,7 @@
 
 #include "stdpch.h"
 
+#include "resource_manager2.h"
 #include "gui_xml.h"
 #include "gui.h"
 
@@ -32,15 +34,22 @@
 // Namespaces
 //
 
-using namespace NLMISC;
+using namespace std;
 using namespace NL3D;
+using namespace NLMISC;
+
+
+//
+// Variables
+//
 
 
 //
 // Functions
 //
 	
-CGuiObject *CGuiXml::get(const string &name)
+
+CGuiObject *CGuiXml::get(string name)
 {
 	CGuiObject *obj;
 	list<guiSPG<CGuiObject> >::iterator it;
@@ -50,7 +59,6 @@ CGuiObject *CGuiXml::get(const string &name)
 		if(obj->name()==name)
 			return obj;
 	}
-	nlstopex(("Cannot get '%s' from the xml", name.c_str()));
 	return 0;
 }
 
@@ -80,28 +88,27 @@ uint CGuiXml::count()
 
 
 
-CGuiXml::CGuiXml(const string &fn)
+CGuiXml::CGuiXml()
 {
-	FileName = fn;
-	//nlinfo("GUI: Creating xml '%s'", FileName.c_str());
 	LuaState = 0;
 }
 
 CGuiXml::~CGuiXml()
 {
-	//nlinfo("GUI: Deleting xml '%s'", FileName.c_str());
 	objects.clear();
 }
 
-CGuiXml *CGuiXmlManager::load( const string &filename, lua_State *luaState) 
+
+
+CGuiXml *CGuiXmlManager::Load(const string &filename, lua_State *luaState)
 {
+
 	xmlNodePtr node;
 	CGuiXml *res;
 	CIFile file;
 	if (file.open(CPath::lookup(filename, false).c_str()))
 	{
-		res = new CGuiXml(filename);
-		nlassert(res);
+		res = new CGuiXml;
 		res->LuaState = luaState;
 		if (res->doc.init(file))
 		{
@@ -110,14 +117,14 @@ CGuiXml *CGuiXmlManager::load( const string &filename, lua_State *luaState)
 		}		
 		else
 		{
+			nlassert(false);
 			delete res;
-			nlstop
 			return 0;
 		}
 	}
 	else
 	{
-		nlstop;
+		nlassert(false);
 		return 0;
 	}
 
@@ -143,6 +150,9 @@ CGuiXml *CGuiXmlManager::load( const string &filename, lua_State *luaState)
 		res->root = object;
 	}
 
+	
+
+
 	return res;
 }
 
@@ -156,7 +166,6 @@ bool CGuiXml::getVector(xmlNodePtr node,const string &name,CVector &res)
 		string s;
 		doc.getContentString(s,node);
 		char tmpstr[1024];
-		tmpstr[0] = '\0';
 		strcpy(tmpstr,s.c_str());
 		char *cstr = tmpstr;
 		char *endstr = 0;
@@ -177,7 +186,7 @@ bool CGuiXml::getVector(xmlNodePtr node,const string &name,CVector &res)
 	return false;
 }
 
-bool CGuiXml::getAlignment(xmlNodePtr node,const string &name,CGuiObject::TGuiAlignment &res)
+bool CGuiXml::getAlignment(xmlNodePtr node,const std::string &name,CGuiObject::TGuiAlignment &res)
 {
 	node = doc.getFirstChildNode(node,name.c_str());
 	if(node)
@@ -208,7 +217,7 @@ bool CGuiXml::getAlignment(xmlNodePtr node,const string &name,CGuiObject::TGuiAl
 }
 
 
-bool CGuiXml::getString(xmlNodePtr node,const string &name,string &res)
+bool CGuiXml::getString(xmlNodePtr node,const std::string &name,std::string &res)
 {
 	node = doc.getFirstChildNode(node,name.c_str());
 	if(node)
@@ -221,7 +230,7 @@ bool CGuiXml::getString(xmlNodePtr node,const string &name,string &res)
 	return false;
 }
 
-bool CGuiXml::getBool(xmlNodePtr node,const string &name,bool &res)
+bool CGuiXml::getBool(xmlNodePtr node,const std::string &name,bool &res)
 {
 	node = doc.getFirstChildNode(node,name.c_str());
 	if(node)

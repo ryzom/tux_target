@@ -1,24 +1,30 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-// 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-// Vianney Lecroart - gpl@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
 
-#ifndef MT_NET_MESSAGE_H
-#define MT_NET_MESSAGE_H
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
+
+
+//
+// This class manages the loading of a level
+//
+
+#ifndef MT_NET_MESSAGE
+#define MT_NET_MESSAGE
 
 
 //
@@ -48,52 +54,49 @@ public:
 	enum TType
 	{
 		Unknown = 0,
-		Chat,					//	CS	SC
-		Command,			//	CS
-		DisplayText,		//			SC
-		EndSession,		//			SC
-		EditMode,			//	CS	SC
-		Error,				//			SC
-		Force,				//	CS
-		Login,				//	CS	SC
-		Logout,				//			SC
-		OpenClose,		//	CS	SC
-		Ready,				//	CS	SC
-		EverybodyReady,//			SC
-		SessionState,		//			SC
-		StartSession,		//			SC
-		Update,				//	CS	SC
-		FullUpdate,			//			SC
-		UpdateElement,	//	CS	SC
-		EnableElement,	//			SC
-		ExecLua,			//			SC
-		Collide,				//			SC
-		TimeArrival,		//			SC
-		UdpLogin,			//	CS
-		Level,				//	CS	SC
-		MatchChallenge,	//	CS	SC
+		// alphabetic order
+		Chat,				//  1 CS SC
+		Command,			//  2 CS
+		DisplayText,		//  3    SC
+		EndSession,			//  4    SC
+		EditMode,			//  5 CS SC
+		Error,				//  6    SC
+		Force,				//  7 CS
+		Login,				//  8 CS SC
+		Logout,				//  9    SC
+		OpenClose,			// 10 CS SC
+		Ready,				// 11 CS SC
+		EverybodyReady,		// 12    SC
+		RequestCRCKey,		// 13 CS SC
+		RequestDownload,	// 14 CS SC
+		SessionState,		// 15    SC
+		StartSession,		// 16    SC
+		Update,				// 17 CS SC
+		UpdateOne,			// 18    SC
+		FullUpdate,			// 19    SC
+		UpdateElement,		// 20 CS SC
+		EnableElement,		// 21    SC
+		ExecLua,			// 22    SC
+		CollideWhenFly,		// 23    SC
+		TimeArrival,		// 24    SC
 	};
 
-	CNetMessage(TType type = Unknown, bool inputStream = false, bool reliable = true);
+	CNetMessage(TType type = Unknown, bool inputStream = false);
 
 	TType type() const { return Type; }
 	void type(TType t) { Type = t; }
 
 	void setHeader (TType type);
 
-	bool reliable() const { return Reliable; }
-
 private:
 
 	TType Type;
 
-	bool	Reliable;
-
-#ifdef MT_SERVER
+#ifdef MTPT_SERVER
 	bool send (NLNET::CBufServer *sock, NLNET::TSockId id);
 #else
 	bool send (NLNET::CBufClient *sock);
-#endif // MT_SERVER
+#endif // MTPT_SERVER
 
 	friend class CNetwork;
 	friend class CNetworkTask;

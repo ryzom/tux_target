@@ -1,21 +1,22 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-// 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-// Vianney Lecroart - gpl@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
 
 
 //
@@ -24,90 +25,87 @@
 
 #include "stdpch.h"
 
-#include "level.h"
 #include "3d_task.h"
 #include "hud_task.h"
 #include "time_task.h"
 #include "game_task.h"
 #include "chat_task.h"
 #include "mtp_target.h"
-#include "login_client.h"
 #include "network_task.h"
 #include "font_manager.h"
 #include "task_manager.h"
-#include "level_manager.h"
 #include "entity_manager.h"
 #include "background_task.h"
 #include "config_file_task.h"
-#include "external_camera_task.h"
+#include "resource_manager2.h"
+#include "level_manager.h"
 
 
 //
 // Namespaces
 //
 
-using namespace NLMISC;
+using namespace std;
 using namespace NL3D;
+using namespace NLMISC;
+
+
+//
+// Variables
+//
 
 
 //
 // Functions
 //
-
+	
 void CHudTask::init()
 {
-	ViewedEId = 255;
-	AltimeterMinValue = CConfigFileTask::instance().configFile().getVar("AltimeterMinValue").asFloat();
-	AltimeterMaxValue = CConfigFileTask::instance().configFile().getVar("AltimeterMaxValue").asFloat();
-	AltimeterValue = 0.0f;
+	AltimeterMinValue = CConfigFileTask::getInstance().configFile().getVar("AltimeterMinValue").asFloat();
+	AltimeterMaxValue = CConfigFileTask::getInstance().configFile().getVar("AltimeterMaxValue").asFloat();
+	pressControlMessageAdded = false;
+	landClosedMessageAdded = false;
+	landClosedMessageAdded2 = false;
 }
 
 void CHudTask::update()
 {
-	AltimeterMinValue = CConfigFileTask::instance().configFile().getVar("AltimeterMinValue").asFloat();
-	AltimeterMaxValue = CConfigFileTask::instance().configFile().getVar("AltimeterMaxValue").asFloat();
-
 	// update altimeter value
-	uint8 eid = CMtpTarget::instance().controler().getControledEntity();
-	AltimeterValue = ((eid != 255) ? CEntityManager::instance()[eid].interpolator().position().z : AltimeterMinValue);
+	uint8 eid = CMtpTarget::getInstance().controler().getControledEntity();
+	AltimeterValue = ((eid != 255) ? CEntityManager::getInstance()[eid].interpolator().currentPosition().z : AltimeterMinValue);
 	AltimeterValue = min(AltimeterValue, AltimeterMaxValue);
 	AltimeterValue = max(AltimeterValue, AltimeterMinValue);
 }
 
 void CHudTask::render()
 {
-	if(CConfigFileTask::instance().configFile().getVar("NoHUD").asInt()==1) return;
-
-	C3DTask::instance().driver().setFrustum(CFrustum(0, (float)C3DTask::instance().screenWidth(), 0, (float)C3DTask::instance().screenHeight(), -1, 1, false));
-
-	ucstring str2;
+	C3DTask::getInstance().driver().setFrustum(CFrustum(0, (float)C3DTask::getInstance().screenWidth(), 0, (float)C3DTask::getInstance().screenHeight(), -1, 1, false));
+	
+	string str;
 
 	float ptdt = 1.0f;
 	bool displaySessionInfo = false;
-	float partTime = CMtpTarget::instance().timeBeforeSessionStart();
+	float partTime = CMtpTarget::getInstance().timeBeforeSessionStart();
 	static uint32 oldPartTime = 0;
-
-	if(CMtpTarget::instance().State == CMtpTarget::eStartSession)
-	{
-		CExternalCameraTask::instance().setExternalCamera(true, false);
-		str2 = CI18N::get("WaitPlayers");
+	
+	if(CMtpTarget::getInstance().State == CMtpTarget::eStartSession)
+	{		
+		str = "Waiting for other players";
 		ptdt = 1.0f;
 	}
-	if(CMtpTarget::instance().State == CMtpTarget::eBeforeFirstSession || CMtpTarget::instance().spectator())
+	if(CMtpTarget::getInstance().State == CMtpTarget::eBeforeFirstSession || CMtpTarget::getInstance().isSpectatorOnly())
 	{
-		if(CMtpTarget::instance().firstSession())
-			str2 = CI18N::get("WaitSession");
+		str = "Waiting for a new session";
 		ptdt = 1.0f;
 	}
-	if(CMtpTarget::instance().State == CMtpTarget::eReady)
+	if(CMtpTarget::getInstance().State == CMtpTarget::eReady)
 	{
-		CExternalCameraTask::instance().setExternalCamera(true, false);
+		pressControlMessageAdded = false;
+		landClosedMessageAdded = false;
+		landClosedMessageAdded2 = false;
 		displaySessionInfo = true;
-
-		if (partTime > 4.0f)
-		{
-			str2 = CI18N::get("CountDownReady");
-		}
+		if (partTime > 5.0f)
+			str = "Ready ?";
 		else if (partTime > 0.0f)
 		{
 			uint32 newPartTime = uint32(partTime)+1;
@@ -115,252 +113,255 @@ void CHudTask::render()
 			if(oldPartTime != newPartTime)
 			{
 				oldPartTime = newPartTime;
-				CSoundManager::instance().playSound(CSoundManager::TSound(CSoundManager::Ready0+newPartTime));
+				//CSoundManager::instance().playSound(CSoundManager::TSound(CSoundManager::Ready0+newPartTime));
+				CSoundManager::instance().playGUISound ("ready" + toString("%u", newPartTime));
 			}
 
-			str2 = ucstring(toString("%u", newPartTime));
+			str = toString("%u", ((uint32) partTime)+1);
 			ptdt = partTime - (float)(sint)partTime;
 		}
 		else
 			nlstop;
 	}
-	if(CMtpTarget::instance().State == CMtpTarget::eGame)
+	if(CMtpTarget::getInstance().State == CMtpTarget::eGame)
 	{
 		if (partTime < 2.0f)
 		{
 			if(oldPartTime != 0)
 			{
 				oldPartTime = 0;
-				CSoundManager::instance().playSound(CSoundManager::TSound(CSoundManager::Ready0));
+				CSoundManager::instance().playGUISound ("ready0");
 			}
-			str2 = CI18N::get("CountDownGo");
-			CExternalCameraTask::instance().setExternalCamera(false);
+
+			str = "Go";
 		}
 	}
-
 	float scale = 1.0f+3.0f*(1.0f-ptdt);
+	CFontManager::getInstance().printf(CRGBA(255, 255, 255, (uint)(ptdt*255)), (C3DTask::getInstance().screenWidth() - str.size() * CFontManager::getInstance().fontWidth()*scale) / 2.0f, 7.0f * CFontManager::getInstance().fontHeight(),scale, str.c_str());
 
-	CFontManager::instance().textContext(CFontManager::TCBig).setHotSpot(UTextContext::MiddleBottom);
-	CFontManager::instance().print(CFontManager::TCBig, CRGBA(255, 255, 255, (uint)(ptdt*255)), CFontManager::instance().screenCenterX(), 7.0f, str2);
-	CFontManager::instance().textContext(CFontManager::TCBig).setHotSpot(UTextContext::BottomLeft);
-
-	float stackedY = float(CConfigFileTask::instance().configFile().getVar("ChatLineCount").asInt()+1);
-
-	for(list<CHudMessage>::iterator it=Messages.begin();it!=Messages.end();)
+	list<CHudMessage>::iterator it;
+	list<CHudMessage>::iterator it2delete;
+	for(it=messages.begin();it!=messages.end();)
 	{
 		CHudMessage m = *it;
-		double time = CTimeTask::instance().time();
+		double time = CTimeTask::getInstance().time();
 		if(it->endTime!=0.0 && time>it->endTime)
 		{
-			list<CHudMessage>::iterator it2delete = it;
+			it2delete = it;
 			it++;
-			Messages.erase(it2delete);
+			messages.erase(it2delete);
 		}
 		else
 		{
+			CFontManager::getInstance().printf(it->col,it->scale * it->x * CFontManager::getInstance().fontWidth(),it->scale * it->y * CFontManager::getInstance().fontHeight(),it->scale, it->message.c_str());			
 			it++;
 		}
 	}
-
-	for(list<CHudMessage>::reverse_iterator it = Messages.rbegin(); it != Messages.rend(); it++)
-	{
-		if(it->x == -1.0f)
+	
+	
+		if (displaySessionInfo)
 		{
-			CFontManager::instance().print(CFontManager::TCChat, 0.0f, (float)stackedY++, it->message);
+			float fontWidth  = (float )CFontManager::getInstance().fontWidth();
+			float fontHeight = (float )CFontManager::getInstance().fontHeight();
+			string str;
+			uint32 len;
+			
+			if(CLevelManager::getInstance().levelPresent())
+				str = "Title: " + CLevelManager::getInstance().currentLevel().name();
+			else
+				str = "Level not present";
+			len = str.size();
+			CFontManager::getInstance().printf(CRGBA(255, 255, 255, 255), 1 * fontWidth, 10.0f * fontHeight,1, str.c_str());
+			/*
+			str = "File : " + CLevelManager::getInstance().currentLevel().filename();
+			len = str.size();
+			CFontManager::getInstance().printf(CRGBA(255, 255, 255, 255), 1 * fontWidth, 11.0f * fontHeight,1, str.c_str());
+			*/
+			if(CLevelManager::getInstance().levelPresent())
+				str = "Author: " + CLevelManager::getInstance().currentLevel().author();
+			else
+				str = "Level not present";
+			len = str.size();
+			CFontManager::getInstance().printf(CRGBA(255, 255, 255, 255), 1 * fontWidth, 12.0f * fontHeight,1, str.c_str());
+
+			CFontManager::getInstance().printf(CRGBA(245, 238, 141, 255), 1 * fontWidth, 16.0f * fontHeight,1, CMtpTarget::getInstance().String1.c_str());
+			CFontManager::getInstance().printf(CRGBA(253, 207, 85, 255), 1 * fontWidth, 18.0f * fontHeight,1, CMtpTarget::getInstance().String2.c_str());
+			
+			/*
+			CFontManager::getInstance().printf(CRGBA(245, 238, 141, 255), 1 * fontWidth, 14 * fontHeight,1, "Best score:");
+			CFontManager::getInstance().printf(CRGBA(253, 207, 85, 255), 3 * fontWidth, 15 * fontHeight,1, string1.c_str());
+			
+			CFontManager::getInstance().printf(CRGBA(245, 238, 141, 255), 1 * fontWidth, 16 * fontHeight,1, "Best time:");
+			CFontManager::getInstance().printf(CRGBA(253, 207, 85, 255), 3 * fontWidth, 17 * fontHeight,1, string2.c_str());
+			*/
 		}
-		else
-		{
-			float x = (it->x == -2.0f)? CFontManager::instance().screenCenterX() : it->x;
 
-			CFontManager::instance().textContext(CFontManager::TCBig).setHotSpot(it->hotSpot);
-			CFontManager::instance().print(CFontManager::TCBig, it->col, x, it->y, it->message);
-			CFontManager::instance().textContext(CFontManager::TCBig).setHotSpot(UTextContext::BottomLeft);
-		}
-	}
-
-	float fs = float(CFontManager::instance().textContext(CFontManager::TCBig).getFontSize());
-
-	if (displaySessionInfo)
-	{
-		float y = 150.0f/fs;
-		float x1 = 10.0f/fs;
-
-		if(CLevelManager::instance().levelPresent())
-		{
-			CFontManager::instance().textContext(CFontManager::TCBig).setHotSpot(UTextContext::MiddleBottom);
-			CFontManager::instance().print(CFontManager::TCBig, CRGBA(255, 200, 0), CFontManager::instance().screenCenterX(), 5.0f, CLevelManager::instance().currentLevel().info());
-			CFontManager::instance().textContext(CFontManager::TCBig).setHotSpot(UTextContext::BottomLeft);
-
-			ucstring str = CI18N::get("Level") + ": " + CLevelManager::instance().currentLevel().name();
-			if(CMtpTarget::instance().TeamMode) str += " " + CI18N::get("InTeam");
-			str += " (" + CFile::getFilenameWithoutExtension(CLevelManager::instance().currentLevel().filename()) + ")";
-			CFontManager::instance().print(CFontManager::TCBig, CRGBA(255, 255, 255), x1, y++, str);
-		}
-
-		CFontManager::instance().print(CFontManager::TCBig, CRGBA(245, 238, 141), x1, y++, CMtpTarget::instance().String1);
-		//CFontManager::instance().print(CFontManager::TCBig, CRGBA(253, 207, 85), x1, y++, CMtpTarget::instance().String2);
-		//if(CLevelManager::instance().levelPresent())
-		//	CFontManager::instance().print(CFontManager::TCBig, CRGBA(253, 207, 85), x1, y++, ucstring(toString("My Record: %.2f", MyRecords[CFile::getFilename(CLevelManager::instance().currentLevel().filename())])));
-	}
-
-	if(CMtpTarget::instance().spectator() && CLevelManager::instance().levelPresent()/* && !CMtpTarget::instance().firstSession()*/)
-	{
-		CFontManager::instance().textContext(CFontManager::TCBig).setHotSpot(UTextContext::MiddleBottom);
-		ucstring str1;
-		ucstring str2 = CI18N::get("F9F10ToFollow");
-		if(CLevelManager::instance().currentLevel().advancedLevel())
-			str1 = CI18N::get("BuyToPlay");
-		float py = float((C3DTask::instance().screenHeight() - 3.5*fs)/fs);
-		CFontManager::instance().print(CFontManager::TCBig, CRGBA(255, 0, 0), CFontManager::instance().screenCenterX(), py--, str1);
-		CFontManager::instance().print(CFontManager::TCBig, CRGBA(255, 128, 128), CFontManager::instance().screenCenterX(), py--, str2);
-		CFontManager::instance().textContext(CFontManager::TCBig).setHotSpot(UTextContext::BottomLeft);
-	}
-
-	// display the arrow and gauge of the altitude
-	float baseY = C3DTask::instance().screenHeight() - 300.0f;
+	// ace todo put HUD in a task
+	
+	float baseY = float(C3DTask::getInstance().screenHeight()) - 300.0f;
 	float height = 244.0f;
 	height = (1-(AltimeterValue - AltimeterMinValue) / (AltimeterMaxValue - AltimeterMinValue)) * height;
-	float x1 = float(C3DTask::instance().screenWidth() - 40), y1 = baseY + 220.0f;
-	float x2 = float(C3DTask::instance().screenWidth() - 55), y2 = baseY - 18 + height;
-	float size = float(CFontManager::instance().textContext(CFontManager::TCChat).getFontSize());
-	CFontManager::instance().print(CFontManager::TCChat, x1/size, y1/size, ucstring(":hud_gauge:"), true);
-	CFontManager::instance().print(CFontManager::TCChat, x2/size, y2/size, ucstring(":hud_arrow:"), true);
+	float x1 = float(C3DTask::getInstance().screenWidth() - 40), y1 = baseY, tx1 = 15, ty1 = 8, tw1 = 34-15, th1 = 253-8;
+	float x2 = float(C3DTask::getInstance().screenWidth() - 60), y2 = baseY - 18 + height, tx2 = 46, ty2 = 10, tw2 = 78-46, th2 = 43-10;	
 
-	float lfs = (float)CFontManager::instance().textContext(CFontManager::TCDebug).getFontSize();
-
-	ucstring altStr = CI18N::get("Altitude") + toString(": %.0f", AltimeterValue*10.0f);
-	CFontManager::instance().print(CFontManager::TCDebug, CRGBA(255, 255, 255, 255), (float)(C3DTask::instance().screenWidth())/lfs - 5.5f, float(C3DTask::instance().screenHeight())/lfs - 4.5f, altStr);
-
-	uint8 eid = CMtpTarget::instance().controler().Camera.getFollowedEntity();
-
+	C3DTask::getInstance().driver().setFrustum(CFrustum(0, (float)C3DTask::getInstance().screenWidth(), 0, (float)C3DTask::getInstance().screenHeight(), -1, 1, false));
+	CFontManager::getInstance().material().setColor(CRGBA(255, 255, 255, 255));
+	
+	CQuadUV		quad;
+	quad.V0.set(x1,C3DTask::getInstance().screenHeight()-y1,0);
+	quad.V1.set(x1,C3DTask::getInstance().screenHeight()-y1-th1,0);
+	quad.V2.set(x1+tw1,C3DTask::getInstance().screenHeight()-y1-th1,0);
+	quad.V3.set(x1+tw1,C3DTask::getInstance().screenHeight()-y1,0);
+	
+	int rx1 = (int)tx1;
+	int ry1 = (int)ty1;
+	int rx2 = (int)tx1+(int)tw1;
+	int ry2 = (int)ty1+(int)th1;
+	
+	quad.Uv0.U= rx1/256.0f;
+	quad.Uv0.V= ry1/256.0f;
+	quad.Uv1.U= rx1/256.0f;
+	quad.Uv1.V= ry2/256.0f;
+	quad.Uv2.U= rx2/256.0f;
+	quad.Uv2.V= ry2/256.0f;
+	quad.Uv3.U= rx2/256.0f;
+	quad.Uv3.V= ry1/256.0f;
+	
+	C3DTask::getInstance().driver().drawQuad (quad, CFontManager::getInstance().material());
+	
+	quad.V0.set(x2,C3DTask::getInstance().screenHeight()-y2,0);
+	quad.V1.set(x2,C3DTask::getInstance().screenHeight()-y2-th2,0);
+	quad.V2.set(x2+tw2,C3DTask::getInstance().screenHeight()-y2-th2,0);
+	quad.V3.set(x2+tw2,C3DTask::getInstance().screenHeight()-y2,0);
+	
+	rx1 = (int)tx2;
+	ry1 = (int)ty2;
+	rx2 = (int)tx2+(int)tw2;
+	ry2 = (int)ty2+(int)th2;
+	
+	quad.Uv0.U= rx1/256.0f;
+	quad.Uv0.V= ry1/256.0f;
+	quad.Uv1.U= rx1/256.0f;
+	quad.Uv1.V= ry2/256.0f;
+	quad.Uv2.U= rx2/256.0f;
+	quad.Uv2.V= ry2/256.0f;
+	quad.Uv3.U= rx2/256.0f;
+	quad.Uv3.V= ry1/256.0f;
+	
+	C3DTask::getInstance().driver().drawQuad (quad, CFontManager::getInstance().material());	
+	
+	uint8 eid = CMtpTarget::getInstance().controler().Camera.getFollowedEntity();
 	if (eid != 255)
 	{
- 		float speed = CEntityManager::instance()[eid].interpolator().smoothSpeed()/GScale;
- 		ucstring speedStr = CI18N::get("Speed") + toString(": %.0f", speed);
- 		CFontManager::instance().print(CFontManager::TCDebug, CRGBA(255, 255, 255, 255), (float)(C3DTask::instance().screenWidth())/lfs - 5.5f, float(C3DTask::instance().screenHeight())/lfs - 3.5f, speedStr);
-
 		// display our score (bottom right)
-		ucstring scoreStr = CI18N::get("Score") + toString(": %d", CEntityManager::instance()[eid].currentScore());
-		CFontManager::instance().print(CFontManager::TCBig, CRGBA(245, 238, 141, 255), float(C3DTask::instance().screenWidth()-150)/fs, float(C3DTask::instance().screenHeight() - 1.5f*fs)/fs, scoreStr);
-
-		/* if (CEntityManager::instance()[eid].interpolator().outOfKey())
-		{
-			float px = (C3DTask::instance().screenWidth()/2.0f - 7.0f*fs/2.0f)/fs;
-			CFontManager::instance().print(CFontManager::TCBig, CRGBA(255, 0, 0, 255), px, 10.0f, ucstring("NET LAG"));
-		} */
+		string totalScoreStr = toString("score %d",CEntityManager::getInstance()[eid].totalScore());
+		CFontManager::getInstance().printf(CRGBA(245, 238, 141, 255), (float) (C3DTask::getInstance().screenWidth() - totalScoreStr.size() * CFontManager::getInstance().fontWidth() - 10), float(C3DTask::getInstance().screenHeight() - 1 * CFontManager::getInstance().fontHeight()), 1, totalScoreStr.c_str());
+		
+		if (CEntityManager::getInstance()[eid].interpolator().outOfKey())
+			CFontManager::getInstance().printf(CRGBA(255, 0, 0, 255), float(C3DTask::getInstance().screenWidth() / 2 - 70), 100.0f,1, "NET LAG");
 	}
+	
 
-	double TimeBeforeTimeout = CMtpTarget::instance().timeBeforeTimeout();
-	if (TimeBeforeTimeout < 0) TimeBeforeTimeout = 0;
-	ucstring timeBeforeTimeoutStr = CI18N::get("TimeLeft")+toString(": %u",(uint)TimeBeforeTimeout);
-	CFontManager::instance().print(CFontManager::TCBig, CRGBA(245, 238, 141), 1.0f, (float)(C3DTask::instance().screenHeight() - 1.5*fs)/fs, timeBeforeTimeoutStr);
-
+	double TimeBeforeTimeout = CMtpTarget::getInstance().timeBeforeTimeout();
+	if (TimeBeforeTimeout < 0)
+		TimeBeforeTimeout = 0;
+	string timeBeforeTimeoutStr = toString("Time left %u",(uint)TimeBeforeTimeout);
+	CFontManager::getInstance().printf(CRGBA(245, 238, 141, 255), 10.0f, (float)(C3DTask::getInstance().screenHeight() - 20),1,timeBeforeTimeoutStr.c_str() );
 	if(!ReplayFile.empty())
-		CFontManager::instance().print(CFontManager::TCBig, CRGBA(245, 238, 141), 1.0f, (float)(C3DTask::instance().screenHeight() - 2.5*fs)/fs, CI18N::get("HomeToRestart"));
-
-	if(CEntityManager::instance().exist(ViewedEId))
 	{
-		CRGBA col;
-		switch(CEntityManager::instance()[ViewedEId].team())
-		{
-		case 0: col.set(255,0,0); break;
-		case 1: col.set(128,128,255); break;
-		default: col.set(255,255,255); break;
-		}
-		CFontManager::instance().textContext(CFontManager::TCBig).setHotSpot(UTextContext::MiddleBottom);
-		CFontManager::instance().print(CFontManager::TCBig, col, CFontManager::instance().screenCenterX(), float(C3DTask::instance().screenHeight() - 1.5*fs)/fs, CEntityManager::instance()[ViewedEId].name());
-		CFontManager::instance().textContext(CFontManager::TCBig).setHotSpot(UTextContext::BottomLeft);
+		string pressPauseToRestart = "Press pause key to restart replay";
+		CFontManager::getInstance().printf(CRGBA(245, 238, 141, 255), 10.0f, (float)(C3DTask::getInstance().screenHeight() - 60),1,pressPauseToRestart.c_str() );
 	}
+	
+	CFontManager::getInstance().printf(CRGBA(255,255,255,255),(C3DTask::getInstance().screenWidth() - _viewedName.size() * CFontManager::getInstance().fontWidth()) / 2.0f,float(C3DTask::getInstance().screenHeight() - 2 * CFontManager::getInstance().fontHeight()),1,_viewedName.c_str());
 
-	displayTutorial();
+	if(CMtpTarget::getInstance().State == CMtpTarget::eGame && CMtpTarget::getInstance().displayTutorialInfo())
+	{
+		if(43<TimeBeforeTimeout && TimeBeforeTimeout<53 && !pressControlMessageAdded)
+		{
+			pressControlMessageAdded = true;
+			addMessage(CHudMessage(5,15,1,string("press control to fly"),CRGBA(255,255,0,255),5));
+		}
+		if(33<TimeBeforeTimeout && TimeBeforeTimeout<43 && !landClosedMessageAdded)
+		{
+			landClosedMessageAdded = true;
+			addMessage(CHudMessage(5,15,1,string("press control to roll"),CRGBA(255,255,0,255),5));
+		}
+		if(23<TimeBeforeTimeout && TimeBeforeTimeout<33 && !landClosedMessageAdded2)
+		{
+			landClosedMessageAdded2 = true;
+			addMessage(CHudMessage(0,15,1,string("don't touch anything when you fly"),CRGBA(255,255,0,255),5));
+		}
+	}
+	
+	/*
+	//updateChat();
+	
+	bool displayScoreForced = (displaySelected != eDisplayEndSession) && C3DTask::getInstance().kbDown(KeyTAB);
+	if (displaySelected == eDisplayEndSession || displayScoreForced)
+	{
+		C3DTask::getInstance().driver().drawQuad(0.0f, 0.0f, C3DTask::getInstance().screenWidth() , C3DTask::getInstance().screenHeight(), CRGBA (0, 0, 0, 200));
+		
+		// display all players score
+		float x1 = 15.0f;
+		float x2 = 250.0f;
+		float x3 = 500.0f;
+		float x4 = 680.0f;
+		float y = 100.0f;
+		CFontManager::getInstance().printf(CRGBA(245, 238, 141), x1, y, 1, "name");
+		CFontManager::getInstance().printf(CRGBA(245, 238, 141), x2, y, 1, "score");
+		CFontManager::getInstance().printf(CRGBA(245, 238, 141), x3, y, 1, "total");
+		CFontManager::getInstance().printf(CRGBA(245, 238, 141), x4, y, 1, "ping");
+		y += fontHeight+10;
+		
+		vector<uint8> eids;
+		CEntityManager::getInstance().getEIdSortedByScore(eids);
+		
+		for(uint i = 0; i < eids.size(); i++, y += fontHeight)
+		{
+			CFontManager::getInstance().printf(CEntityManager::getInstance()[i].color(), x1, y, 1, "%s%s", CEntityManager::getInstance()[i].name().c_str(), (CEntityManager::getInstance()[i].spectator()?" :spec:":""));
+			if (!displayScoreForced)
+				CFontManager::getInstance().printf(CEntityManager::getInstance()[i].color(), x2, y, 1, "%u", CEntityManager::getInstance()[i].currentScore());
+			CFontManager::getInstance().printf(CEntityManager::getInstance()[i].color(), x3, y, 1, "%u", CEntityManager::getInstance()[i].totalScore());
+			CFontManager::getInstance().printf(CEntityManager::getInstance()[i].color(), x4, y, 1, "%u", CEntityManager::getInstance()[i].ping());
+		}
+	}	
+	*/
 }
 
-void CHudTask::addSysMessage(const ucstring &txt)
+void CHudTask::release()
 {
-	CHudMessage msg(-1.0f, 0.0f, 1.0f, CRGBA::White, 10.0, txt);
+}
+
+void CHudTask::setDisplayViewedName(const string &name)
+{
+	_viewedName = name;
+}
+
+void CHudTask::addSysMessage(const string &txt)
+{
+	CHudMessage msg(-1.0f, 0.0f, 1.0f, txt, CRGBA::White, 10.0);
 	addMessage(msg);
 }
 
 void CHudTask::addMessage(const CHudMessage &newm)
 {
-	if(newm.x != -1.0f)
-	{
-		for(list<CHudMessage>::iterator it=Messages.begin();it!=Messages.end();)
-		{
-			CHudMessage &m = *it;
-			if(m.x == newm.x && m.y==newm.y)
-			{
-				list<CHudMessage>::iterator it2delete = it;
-				it++;
-				Messages.erase(it2delete);
-			}
-			else
-			{
-				it++;
-			}
-		}
-	}
-	Messages.push_back(newm);
-}
-
-void CHudTask::clearMessages()
-{
-	// only clear non stacked messages
 	list<CHudMessage>::iterator it;
-	list<CHudMessage>::iterator it2delete;
-	for(it=Messages.begin();it!=Messages.end();)
+	for(it=messages.begin();it!=messages.end();)
 	{
-		CHudMessage &m = *it;
-		if(m.x != -1.0f)
+		CHudMessage m = *it;
+		if(m.x == newm.x && m.y==newm.y)
 		{
-			it2delete = it;
+			list<CHudMessage>::iterator it2delete = it;
 			it++;
-			Messages.erase(it2delete);
+			messages.erase(it2delete);
 		}
 		else
 		{
 			it++;
 		}
 	}
+
+	messages.push_back(newm);
 }
 
-void CHudTask::displayTutorial()
-{
-	if(!CMtpTarget::instance().displayTutorialInfo()) return;
-
-	double TimeBeforeTimeout = CMtpTarget::instance().timeBeforeTimeout();
-
-	static bool msg1, msg2, msg3, msg4;
-
-	if(CMtpTarget::instance().State == CMtpTarget::eReady)
-	{
-		msg1 = msg2 = msg3 = msg4 = false;
-	}
-
-	ucstring msg;
-
-	if(CMtpTarget::instance().State == CMtpTarget::eGame)
-	{
-		if(TimeBeforeTimeout<63 && !msg1)
-		{
-			msg1 = true;
-			msg = CI18N::get("TutoUp");
-		}
-		if(TimeBeforeTimeout<53 && !msg2)
-		{
-			msg2 = true;
-			msg = CI18N::get("TutoCTRL");
-		}
-		if(TimeBeforeTimeout<46 && !msg3)
-		{
-			msg3 = true;
-			msg = CI18N::get("TutoArrow");
-		}
-		if(TimeBeforeTimeout<38 && !msg4)
-		{
-			msg4 = true;
-			msg = CI18N::get("TutoCTRL2");
-		}
-		if(!msg.empty()) addMessage(CHudMessage(-2.0f, 6, 1, CRGBA(255,255,0), 6, msg, UTextContext::MiddleBottom));
-	}
-}

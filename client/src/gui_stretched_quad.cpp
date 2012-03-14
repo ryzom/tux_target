@@ -1,21 +1,22 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-// 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-// Vianney Lecroart - gpl@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
 
 
 //
@@ -24,24 +25,32 @@
 
 #include "stdpch.h"
 
-#include <nel/3d/u_material.h>
-
 #include "3d_task.h"
 #include "time_task.h"
+#include "resource_manager2.h"
 #include "gui_stretched_quad.h"
 
+#include <nel/3d/u_material.h>
 
 //
 // Namespaces
 //
 
-using namespace NLMISC;
+using namespace std;
 using namespace NL3D;
+using namespace NLMISC;
+
+
+//
+// Variables
+//
 
 
 //
 // Functions
 //
+	
+
 
 CGuiStretchedQuad::CGuiStretchedQuad():_position(0,0,0)
 {
@@ -90,8 +99,7 @@ CGuiStretchedQuad::~CGuiStretchedQuad()
 
 void CGuiStretchedQuad::render()
 {
-	H_AUTO2;
-	//draw a strech quad
+		//draw a strech quad
 
 	if(_size.x<=0.0f || _size.y<=0.0f) return;
 
@@ -135,7 +143,7 @@ void CGuiStretchedQuad::render()
 		q.V2 += _offset;
 		q.V3 += _offset;
 		
-		C3DTask::instance().driver().drawQuad(q,_material);
+		C3DTask::getInstance().driver().drawQuad(q,_material);
 
 		return;
 	}
@@ -192,7 +200,7 @@ void CGuiStretchedQuad::render()
 	q.V1 += _offset;
 	q.V2 += _offset;
 	q.V3 += _offset;
-	C3DTask::instance().driver().drawQuad(q,_material);
+	C3DTask::getInstance().driver().drawQuad(q,_material);
 	
 	//s1
 	if(stretchX)
@@ -209,7 +217,7 @@ void CGuiStretchedQuad::render()
 		q.V1 += _offset;
 		q.V2 += _offset;
 		q.V3 += _offset;
-		C3DTask::instance().driver().drawQuad(q,_material);
+		C3DTask::getInstance().driver().drawQuad(q,_material);
 	}
 
 	//f2
@@ -225,7 +233,7 @@ void CGuiStretchedQuad::render()
 	q.V1 += _offset;
 	q.V2 += _offset;
 	q.V3 += _offset;
-	C3DTask::instance().driver().drawQuad(q,_material);
+	C3DTask::getInstance().driver().drawQuad(q,_material);
 	
 	//s4
 	if(stretchY)
@@ -242,7 +250,7 @@ void CGuiStretchedQuad::render()
 		q.V1 += _offset;
 		q.V2 += _offset;
 		q.V3 += _offset;
-		C3DTask::instance().driver().drawQuad(q,_material);
+		C3DTask::getInstance().driver().drawQuad(q,_material);
 	}
 	
 	//c
@@ -260,7 +268,7 @@ void CGuiStretchedQuad::render()
 		q.V1 += _offset;
 		q.V2 += _offset;
 		q.V3 += _offset;
-		C3DTask::instance().driver().drawQuad(q,_material);
+		C3DTask::getInstance().driver().drawQuad(q,_material);
 	}
 	
 	//s2
@@ -278,7 +286,7 @@ void CGuiStretchedQuad::render()
 		q.V1 += _offset;
 		q.V2 += _offset;
 		q.V3 += _offset;
-		C3DTask::instance().driver().drawQuad(q,_material);
+		C3DTask::getInstance().driver().drawQuad(q,_material);
 	}
 	
 	//f4
@@ -294,7 +302,7 @@ void CGuiStretchedQuad::render()
 	q.V1 += _offset;
 	q.V2 += _offset;
 	q.V3 += _offset;
-	C3DTask::instance().driver().drawQuad(q,_material);
+	C3DTask::getInstance().driver().drawQuad(q,_material);
 	
 	//s3
 	if(stretchX)
@@ -311,7 +319,7 @@ void CGuiStretchedQuad::render()
 		q.V1 += _offset;
 		q.V2 += _offset;
 		q.V3 += _offset;
-		C3DTask::instance().driver().drawQuad(q,_material);
+		C3DTask::getInstance().driver().drawQuad(q,_material);
 	}
 	
 	//f3
@@ -327,7 +335,7 @@ void CGuiStretchedQuad::render()
 	q.V1 += _offset;
 	q.V2 += _offset;
 	q.V3 += _offset;
-	C3DTask::instance().driver().drawQuad(q,_material);	
+	C3DTask::getInstance().driver().drawQuad(q,_material);	
 }
 
 

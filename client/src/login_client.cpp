@@ -1,21 +1,22 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-// 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-// Vianney Lecroart - gpl@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
 
 
 //
@@ -34,13 +35,13 @@
 
 #include "3d_task.h"
 #include "time_task.h"
-#include "mtp_target.h"
 
 
 //
 // Namespaces
 //
 
+using namespace std;
 using namespace NLMISC;
 using namespace NLNET;
 using namespace NL3D;
@@ -52,11 +53,9 @@ using namespace NL3D;
 
 CLoginClientMtp::TShardList CLoginClientMtp::ShardList;
 
+string CLoginClientMtp::_GfxInfos;
+
 CCallbackClient *CLoginClientMtp::_CallbackClient = 0;
-
-uint32 CLoginClientMtp::SelectedShardIndex = 99999;
-
-map<string, float> MyRecords;
 
 
 //
@@ -79,7 +78,7 @@ void cbVerifyLoginPassword (CMessage &msgin, TSockId from, CCallbackNetBase &net
 		msgin.serial (nbshard);
 
 		CLoginClientMtp::ShardList.clear ();
-		VerifyLoginPasswordReason.clear();
+		VerifyLoginPasswordReason = "";
 
 		// get the shard list
 		for (uint i = 0; i < nbshard; i++)
@@ -104,12 +103,11 @@ void cbShardChooseShard (CMessage &msgin, TSockId from, CCallbackNetBase &netbas
 	//
 
 	msgin.serial (ShardChooseShardReason);
-
+	
 	if (ShardChooseShardReason.empty())
 	{
 		msgin.serial (ShardChooseShardCookie);
 		msgin.serial (ShardChooseShardAddr);
-		msgin.serialCont(MyRecords);
 	}
 	ShardChooseShard = true;
 }
@@ -122,7 +120,7 @@ static TCallbackItem CallbackArray[] =
 
 //
 
-string CLoginClientMtp::authenticate (const string &loginServiceAddr, const ucstring &login, const string &password)
+string CLoginClientMtp::authenticate (const string &loginServiceAddr, const string &login, const string &password, uint32 clientVersion)
 {
 	//
 	// S01: connect to the LS
@@ -147,28 +145,28 @@ string CLoginClientMtp::authenticate (const string &loginServiceAddr, const ucst
 		delete _CallbackClient;
 		_CallbackClient = 0;
 		nlwarning ("Connection refused to LS (addr:%s): %s", loginServiceAddr.c_str(), e.what ());
-		return "ErrLSNotAvailable";
+		return "Connection refused to LS";
 	}
 
 	//
 	// S02: create and send the "VLP" message
 	//
 	CMessage msgout ("VLP");
-	msgout.serial (const_cast<ucstring&>(login));
+	msgout.serial (const_cast<string&>(login));
 	msgout.serial (const_cast<string&>(password));
-	uint32 gameid = 0x0ACE15;
-	msgout.serial (gameid);
+	msgout.serial (clientVersion);
 
 	string OS, Proc, Mem, Gfx;
 	OS = CSystemInfo::getOS().c_str();
 	Proc = CSystemInfo::getProc().c_str();
-	Mem = toString(CSystemInfo::availablePhysicalMemory()) + " | " + toString(CSystemInfo::totalPhysicalMemory());
-	Gfx = C3DTask::instance().driver().getDriverInformation();
-	Gfx += " | ";
-	Gfx += C3DTask::instance().driver().getVideocardInformation();
-	msgout.serial (OS, Proc, Mem, Gfx);
-
-	msgout.serial(CurrentVersion);
+	Mem = toString(CSystemInfo::availablePhysicalMemory()) + " " + toString(CSystemInfo::totalPhysicalMemory());
+	msgout.serial (OS);
+	msgout.serial (Proc);
+	msgout.serial (Mem);
+	_GfxInfos = C3DTask::getInstance().driver().getDriverInformation();
+	_GfxInfos += " / ";
+	_GfxInfos += C3DTask::getInstance().driver().getVideocardInformation();
+	msgout.serial (_GfxInfos);
 
 	_CallbackClient->send (msgout);
 
@@ -178,16 +176,18 @@ string CLoginClientMtp::authenticate (const string &loginServiceAddr, const ucst
 	{
 		_CallbackClient->update ();
 		nlSleep(10);
-		C3DTask::instance().update();
-		CTimeTask::instance().update();
+		C3DTask::getInstance().update();
+		CTimeTask::getInstance().update();
+		if(C3DTask::getInstance().kbPressed(KeyESCAPE))
+			return "CLoginClientMtp::authenticate(): user abort";
 	}
-
+	
 	// have we received the answer?
 	if (!VerifyLoginPassword)
 	{
 		delete _CallbackClient;
 		_CallbackClient = 0;
-		return "ErrLSDisconnect";
+		return "CLoginClientMtp::authenticate(): LS disconnects me";
 	}
 
 	if (!VerifyLoginPasswordReason.empty())
@@ -203,9 +203,7 @@ string CLoginClientMtp::authenticate (const string &loginServiceAddr, const ucst
 string CLoginClientMtp::confirmConnection (uint32 shardListIndex)
 {
 	nlassert (_CallbackClient != 0 && _CallbackClient->connected());
-
-	if(shardListIndex >= ShardList.size())
-		return "ErrLSBadShard";
+	nlassert (shardListIndex < ShardList.size());
 
 	//
 	// S05: send the client shard choice
@@ -222,8 +220,10 @@ string CLoginClientMtp::confirmConnection (uint32 shardListIndex)
 	{
 		_CallbackClient->update ();
 		nlSleep(10);
-		C3DTask::instance().update();
-		CTimeTask::instance().update();
+		C3DTask::getInstance().update();
+		CTimeTask::getInstance().update();
+		if(C3DTask::getInstance().kbPressed(KeyESCAPE))
+			return "CLoginClientMtp::confirmConnection(): user abort";
 	}
 	
 	// have we received the answer?
@@ -231,7 +231,7 @@ string CLoginClientMtp::confirmConnection (uint32 shardListIndex)
 	{
 		delete _CallbackClient;
 		_CallbackClient = 0;
-		return "ErrLSDisconnect";
+		return "CLoginClientMtp::confirmConnection(): LS disconnects me";
 	}
 	else
 	{
@@ -247,7 +247,7 @@ string CLoginClientMtp::confirmConnection (uint32 shardListIndex)
 
 	// ok, we can try to connect to the good front end
 
-	nlinfo("Server Info: Addr: '%s' Cookie: %s", ShardChooseShardAddr.c_str(), ShardChooseShardCookie.c_str());
+	nlinfo("addr: '%s' cookie: %s", ShardChooseShardAddr.c_str(), ShardChooseShardCookie.c_str());
 
 	return "";
 }
@@ -259,10 +259,10 @@ string CLoginClientMtp::connectToShard (uint32 shardListIndex, CInetAddress &ip,
 
 	ip = ShardChooseShardAddr;
 	cookie = ShardChooseShardCookie;
-	SelectedShardIndex = shardListIndex;
 	
 	return "";
 }
+
 
 uint32 CLoginClientMtp::shardIdToIndex (uint32 shardId)
 {

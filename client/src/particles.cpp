@@ -1,21 +1,22 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-// 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-// Vianney Lecroart - gpl@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
 
 
 //
@@ -24,27 +25,62 @@
 
 #include "stdpch.h"
 
+#include <deque>
+#include <string>
+
+#include <nel/3d/mesh.h>
+#include <nel/3d/shape.h>
+#include <nel/3d/material.h>
+#include <nel/3d/register_3d.h>
+
+#include <nel/misc/quat.h>
+#include <nel/misc/common.h>
+
+#include <nel/3d/u_instance_material.h>
+
+#include <nel/3d/water_height_map.h>
+#include <nel/3d/water_pool_manager.h>
+
+#include "global.h"
+#include "entity.h"
+#include "network_task.h"
+#include "mtp_target.h"
+#include "resource_manager2.h"
+#include "level_manager.h"
+
+#include "stdpch.h"
+
+#include <deque>
+
+#include <nel/misc/quat.h>
+#include <nel/misc/common.h>
+
+#include <nel/3d/u_instance_material.h>
+
+#include <nel/3d/water_height_map.h>
+#include <nel/3d/water_pool_manager.h>
+
+#include "module.h"
+#include "global.h"
 #include "3d_task.h"
-#include "particles.h"
+#include "time_task.h"
+#include "mtp_target.h"
+#include "font_manager.h"
+#include "config_file_task.h"
+#include "../../common/load_mesh.h"
 
-
-//
-// Namespaces
-//
-
+using namespace std;
 using namespace NLMISC;
 using namespace NL3D;
 
 
-//
-// Functions
-//
+
+
 
 CParticles::CParticles() : CParticlesCommon()
 {
-	mat = C3DTask::instance().createMaterial();
-	LuaUserDataRef = 0;
-	LuaUserData = 0;
+	mat = C3DTask::getInstance().createMaterial();
+	LuaProxy = 0;
 }
 
 
@@ -52,19 +88,22 @@ CParticles::~CParticles()
 {
 	if(!Mesh.empty())
 	{
-		C3DTask::instance().scene().deleteInstance(Mesh);
+		C3DTask::getInstance().scene().deleteInstance(Mesh);
 	}
 }
 
 
-/*void CParticles::init(const string &name, const string &fileName, uint8 id, const CVector &position, const CVector &scale, const CAngleAxis &rotation, bool show, bool started)
+void CParticles::init(const string &name, const std::string &fileName, uint8 id, const CVector &position, const CVector &scale, const CAngleAxis &rotation, bool show, bool started)
 {
 	CParticlesCommon::init(name, fileName, id, position, scale, rotation,show,started); 
 
-	ShapeName = CPath::lookup(fileName+".ps");
+	// Get collision faces
+//	loadMesh(ShapeName, Vertices, Normals, Indices,false);
+	
+	ShapeName = CResourceManager::getInstance().get(fileName+".ps");
 
-	string res = CPath::lookup(ShapeName);
-	Mesh = C3DTask::instance().scene().createInstance(res);
+	string res = CResourceManager::getInstance().get(ShapeName);
+	Mesh = C3DTask::getInstance().scene().createInstance(res);
 	if (Mesh.empty())
 	{
 		nlwarning ("Can't load '%s'", ShapeName.c_str());
@@ -78,7 +117,26 @@ CParticles::~CParticles()
 	else
 		Particle.hide();
 	Particle.setPos(position);
-}*/
+
+	
+}
+
+void CParticles::luaInit()
+{
+	if(LuaProxy)
+	{
+		delete LuaProxy;
+		LuaProxy = 0;
+	}
+	if(CLevelManager::getInstance().levelPresent())
+	{
+		LuaProxy = new CParticlesProxy(CLevelManager::getInstance().currentLevel().luaState(),this);	
+		nlinfo("CParticles::luaInit(), luaState=0x%p , proxy = 0x%p",CLevelManager::getInstance().currentLevel().luaState(),LuaProxy);
+	}
+	else
+		nlwarning("lua init : no level loaded");
+}
+
 
 void CParticles::renderSelection()
 {
@@ -87,14 +145,16 @@ void CParticles::renderSelection()
 	mat.setZFunc(UMaterial::always);
 	mat.setBlend(true);
 	mat.setBlendFunc(UMaterial::srcalpha,UMaterial::invsrcalpha);
-
+	
 	CMatrix matrix = mesh().getMatrix();
+
+	
 }
 
 void CParticles::update(const NLMISC::CVector &pos, const NLMISC::CVector &rot)
 {
 	//TODO rot
-	setPosition(pos);
+	position(pos);
 }
 
 
@@ -108,80 +168,7 @@ void CParticles::enabled(bool b)
 	nlinfo("%s %s",b?"show":"hide",name().c_str());
 }
 
-void CParticles::setPosition(const CLuaVector &pos)
+void CParticles::position(const NLMISC::CVector &pos) 
 {
-	CEditableElementCommon::setPosition(pos);
-	Mesh.setPos(pos);
-}
-
-//////////////////////////////////////////////////////////////////////////
-
-
-int CParticles::setMetatable(lua_State *L)
-{ 
-	int res = lua_setmetatable(L, -2);
-	if(res==0)
-		nlwarning("cannot set metatable");
-	return 0; 
-}
-
-
-int CParticles::getUserData(lua_State *luaSession)
-{
-	lua_getref(luaSession, LuaUserDataRef); //push obj which have this ref id
-	return 1; // one return value
-}
-
-int CParticles::setUserData(lua_State *luaSession)
-{
-	LuaUserData = lua_touserdata(luaSession, 1); // get arg
-	LuaUserDataRef = lua_ref(luaSession,1); //get ref id and lock it
-	return 0; // no return value
-}
-
-int CParticles::name(lua_State *luaSession)
-{
-	lua_pushstring(luaSession,name().c_str());
-	return 1;
-}
-
-
-
-
-/*int CParticles::getPos(lua_State *luaSession)
-{
-	Pos = position();
-	Lunar<CLuaVector>::push(luaSession,&Pos);
-	return 1;
-}
-
-int CParticles::setPos(lua_State *luaSession)
-{
-	CLuaVector pos  = *Lunar<CLuaVector>::check(luaSession,-1);
-	position(pos);
-	return 0;
-}*/
-
-int CParticles::show(lua_State *luaSession)
-{
-	particle().show();
-	return 0;
-}
-
-int CParticles::hide(lua_State *luaSession)
-{
-	particle().hide();
-	return 0;
-}
-
-int CParticles::start(lua_State *luaSession)
-{
-	particle().activateEmitters(true);
-	return 0;
-}
-
-int CParticles::stop(lua_State *luaSession)
-{
-	particle().activateEmitters(false);
-	return 0;
+	Position = pos; _changed = true; Mesh.setPos(pos);
 }

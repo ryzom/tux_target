@@ -1,0 +1,18 @@
+<?xml version="1.0" standalone="no" ?>
+<!-- this is a mtp-target gui resource -->
+<resource>
+	<object class="CGuiHBox" name="serverItemHBox">
+		<alignment>eAlignExpandHorizontal|eAlignCenterVertical</alignment>
+		<element>
+			<object class="CGuiButton" name="bServer">
+				<minSize>80,0</minSize>
+				<alignment>eAlignExpandHorizontal|eAlignCenterVertical</alignment>
+				<element>
+					<object class="CGuiText" name="btextServer">
+						<string>mtp-target.dyndns.org</string>
+					</object>
+				</element>
+			</object>
+		</element>
+	</object>
+</resource>

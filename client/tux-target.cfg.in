@@ -1,0 +1,283 @@
+
+//////////////////////////////////////////////////////////////////////////
+// VIDEO
+//////////////////////////////////////////////////////////////////////////
+
+// Width of the screen in pixels
+ScreenWidth          = 800;
+
+// Height of the screen in pixels
+ScreenHeight         = 600;
+
+// Depth of the screen in bits
+ScreenDepth          = 32;
+
+// Frequency of the screen (0 for automatic selection)
+ScreenFrequency      = 0;
+
+// 1 = Fullscreen mode
+// 0 = Windowed mode
+Fullscreen           = 1;
+
+// Do we wait the vertical synchronisation
+// 0 = No sync
+// 1 = Sync
+VSync = 0;
+
+// Control the anti alias
+// 0 = No anti alias
+// 1 = Antialias with 2 sample
+AntiAlias = 0;
+
+// Quantum of time gived to the OS between each frame, in milliseconds
+// -1 = No time left
+//  0 = Better multitasking, lower framerate
+Sleep                = 10;
+
+// Field of view in degrees
+Fov                  = 90;
+
+// Ambiant color in red green blue alpha format
+AmbientColor         = { 82, 100, 133, 255 };
+
+// Color in red green blue alpha format used to clear the screen
+ClearColor           = { 30, 45, 90, 0 };
+
+// Minimal distance for the fog (1.0 = 100 meters)
+FogDistMin           = 50.0;
+
+// Maximal distance for the fog (1.0 = 100 meters)
+FogDistMax           = 150.0;
+
+// 1 = Display dynamic clouds
+// 0 = No clouds (faster framerate)
+DisplayClouds        = 1;
+
+// 2 = Display pixel shader water (must have geforce 3 or better)
+// 1 = Display basic (and ugly) water (better framerater)
+// 0 = No water (more better framerate)
+DisplayWater         = 2;
+
+// 1 = Display particle systems
+// 0 = No particle systems (faster framerate)
+DisplayParticle      = 1;
+
+// If total score > than this variable, no more tutorial is displayed
+MinTotalScoreToHideTutorial = 500;
+
+// 1 = use open gl driver
+// 0 = use direct 3d driver
+OpenGL               = 1;
+
+// Filename of the font used for the chat
+LittleFont = "LiberationSerif-Regular.ttf";
+
+// Filename of the font used for the score and in game text
+BigFont = "LiberationSerif-Regular.ttf";
+
+// Size of the font used for the score and in game text
+BigFontSize = 18;
+
+// Filename of the font used for the graphical interface
+GUIFont = "LiberationSerif-Regular.ttf";
+
+// Size of the font used for the graphical interface
+GUIFontSize = 12;
+
+// Max number of polygon for particule system
+FxNbMaxPoly          = 5000;
+
+// Number lines displayed in chat 
+ChatLineCount          = 3;
+
+// Set to 0 to try to display the water on ATI
+NativeFragmentProgramsOnly = 1;
+
+//////////////////////////////////////////////////////////////////////////
+// NETWORK
+//////////////////////////////////////////////////////////////////////////
+
+// Which network protocol version for this client
+NetworkVersion = 5;
+
+// Player login
+Login                = "";
+
+// Player password (not crypted!)
+Password             = "";
+
+// IP address of the mtp target server when you don't use nel_launcher
+ServerHost           = "localhost";
+
+// Default TCP port on the server
+TcpPort              = 51574;
+
+// Number of frame before decreasing LCT
+LctFrameCountBeforeDecreasing = 100;
+
+// Number of key in buffer
+LctKeyCount          = 4;
+
+// LCT time in milliseconds
+Lct                  = 0.600;
+
+// Delta time (in ms) to add if lct is too low
+LctAdaptationInc     = 0.001;	
+
+// Delta time (in ms) to sub if lct is too high
+LctAdaptationDec     = 0.010;
+
+// Address where the login service is
+LSHost = "mtp-target.dyndns.org";
+
+// Address where the http file server is
+HttpServerFile       = "http://mtp-target.dyndns.org/mtp-target/export";
+
+// Crc Filename
+CrcFileName = "crc.txt";
+
+
+//////////////////////////////////////////////////////////////////////////
+// Debug
+//////////////////////////////////////////////////////////////////////////
+
+// 1=display visual level
+// 0=hide
+DisplayLevel         = 1;
+
+// 1=display debug information
+// 0=hide
+DisplayDebug         = 0;
+
+// 1=display the start positions
+// 0=hide
+DisplayStartPositions = 0;
+
+
+//////////////////////////////////////////////////////////////////////////
+// Sound
+//////////////////////////////////////////////////////////////////////////
+
+//// Valid values are OpenAL, FMod, XAudio2, DSound
+SoundDriver	= "Auto";
+
+// 1 = Use music
+// 0 = No music
+Music		= 1;
+
+// 1 = Use sounds
+// 0 = No sounds
+Sound		= 1;
+
+SoundVolume	= 1.0;
+
+MusicVolume = 0.8;
+
+// Path to the m3u playlist
+M3UList		= "tux-target.m3u";
+
+// 1 = Shuffle the playlist
+// 0 = No Shuffle
+M3UShuffle	= 1;
+
+
+//////////////////////////////////////////////////////////////////////////
+// Misc
+//////////////////////////////////////////////////////////////////////////
+
+// 3 = Move the mouse will turn the camera
+// 2 = You must press the left mouse button to move turn camera,
+//     when you release the button, the camera go back to the player view
+// 1 = You must press the left mouse button to move turn camera
+//     when you release the button, the camera keep the position
+// 0 = Can't move the mouse
+AllowMouse           = 2;
+
+// 1 = Inverse Y mouse axis
+// 0 = Normal Y mouse axis
+InverseMouse         = 0;
+
+// Where to get the data files
+Path = { "@TUX_TARGET_DATA_DIR@" };
+
+// Where to put files downloaded form the server
+CacheDirectory = "cache";
+
+// Crc check against server file version
+CRCCheck             = 1;
+
+// Force Crc check after each session
+ForceCRCCheck        = 0;
+
+// 1 = Save session in replay directory
+// 0 = Don't save replay
+GenerateReplay       = 1;
+
+// 1 = when connected, the mouse disappear and stay in the window (default)
+// 0 = you always see mouse and can move the mouse outside the window
+CaptureMouse         = 1;
+
+// 0 = normal gui interface to login
+// 1 = auto login online using last username/password
+// 2 = auto login on LAN using last username/password
+AutoLogin         = 0;
+
+// if 0 = first server in the list
+// else = join server this id 
+AutoServerId      = 0;
+
+// How many replay are stored ?
+maxReplaySavedCount = 20;
+
+// Max distance between 2 keys before cancel linear interpolation and
+// keep only second key
+InterpolatorMaxDistBetween2Keys = 1.000000000;
+
+// log the chat in chat.log file
+// 1 : enable
+// 0 : disable
+LogChat			= 1;
+
+// Log filters
+NegFiltersDebug      = { "LNET" };
+NegFiltersInfo       = { "LNET" };
+
+ReplaceStringByImage        = {
+	":)", "icon_smile.tga", ":(", "icon_sad.tga" ,
+	":lol:", "icon_lol.tga", ":gg:", "icon_gg.tga" 
+};
+
+
+//////////////////////////////////////////////////////////////////////////
+// Other
+//////////////////////////////////////////////////////////////////////////
+
+AltimeterMinValue    = 0;
+AltimeterMaxValue    = 10;
+RotationSpeed        = 3;
+CloseBackDist        = 0.03;
+CloseHeight          = 0.03;
+CloseTargetBackDist  = 0.00;
+CloseTargetHeight    = 0.02;
+OpenBackDist         = 0.04;
+OpenHeight           = 0.03;
+OpenTargetBackDist   = -0.05;
+OpenTargetHeight     = 0.0;
+
+Map1Scale = { 0.1, 0.1 };
+Map2Scale = { 0.05, 0.05 };
+Map1Speed = { 0.02, -0.01 };
+Map2Speed = { -0.08, 0.0 };
+WaveHeightFactor = 1.0;
+WavesParams = { 1.0, 0.1, 1.0, 0.0 };
+WavesPropagation = 0.09;
+
+EnableEditor = 0;
+CustomGui    = 0;
+
+// Player color
+EntityColor = { 255, 255, 255 };
+
+// Player texture
+EntityTexture = "";
+currentReplaySavedCount = 0;

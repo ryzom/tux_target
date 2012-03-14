@@ -1,0 +1,37 @@
+<?xml version="1.0" standalone="no" ?>
+<!-- this is a mtp-target gui resource -->
+<resource>
+	<object class="CGuiFrame" name="serverListFrame">
+		<alignment>eAlignCenterHorizontal|eAlignCenterVertical</alignment>
+		<minSize>0,120</minSize>
+		<position>0,50</position>
+		<element>
+			<object class="CGuiVBox" name="serverVbox0">
+				<alignment>eAlignExpandHorizontal|eAlignExpandVertical</alignment>
+				<element>
+					<object class="CGuiText" name="serverListTitle">
+						<alignment>eAlignCenterHorizontal|eAlignCenterVertical</alignment>
+						<string> Mtp Target Servers </string>
+					</object>
+					<object class="CGuiSpacer" name="spacer">
+						<minSize>0,20</minSize>
+					</object>
+					<object class="CGuiVBox" name="serverVbox">
+						<alignment>eAlignExpandHorizontal|eAlignExpandVertical</alignment>
+					</object>
+					<object class="CGuiSpacer" name="spacer">
+						<minSize>0,20</minSize>
+					</object>
+					<object class="CGuiButton" name="bBack">
+						<minSize>80,0</minSize>
+						<element>
+							<object class="CGuiText" name="btextExit">
+								<string>Back</string>
+							</object>
+						</element>
+					</object>
+				</element>
+			</object>
+		</element>
+	</object>
+</resource>

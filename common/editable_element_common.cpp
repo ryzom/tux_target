@@ -1,21 +1,22 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-// 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-// Vianney Lecroart - gpl@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
 
 
 //
@@ -31,12 +32,27 @@
 #include "editable_element_common.h"
 #include "lua_utility.h"
 
-
 //
 // Namespaces
 //
 
+using namespace std;
 using namespace NLMISC;
+
+
+//
+// Types
+//
+
+
+//
+// Declarations
+//
+
+
+//
+// Variables
+//
 
 
 //
@@ -45,38 +61,40 @@ using namespace NLMISC;
 
 CEditableElementCommon::CEditableElementCommon()
 {
-	Type = Unknown;
-	Scale = CVector(1.0f, 1.0f, 1.0f);
-	Position = CVector::Null;
-	Id = 255;
-#ifndef MT_SERVER
+	_type = Unknown;
+	_changed = false;
+#ifndef MTPT_SERVER
 	Mesh = 0;
 #endif
 }
 
 CEditableElementCommon::~CEditableElementCommon()
 {
+	
 }
+
 
 bool CEditableElementCommon::isKindOf(TType type)
 {
-	return Type == type;
+	return _type == type;
 }
 
-/*void CEditableElementCommon::init(const string &name, const string &shapeName, uint8 id, const NLMISC::CVector &position, const NLMISC::CVector &scale, const NLMISC::CAngleAxis &rotation)
+
+void CEditableElementCommon::init(const std::string &name, const std::string &shapeName, uint8 id, const NLMISC::CVector &position, const NLMISC::CVector &scale, const NLMISC::CAngleAxis &rotation)
 {
-	setName(name);
+	Name = name;
 	Position = position;
 	Rotation = rotation;
 	Scale = scale;
-	Id = id;
-	//_changed = false;
+	_id = id;
+	_changed = false;
 
 	NbFaces = 0;
 	Normals.clear();
 	Vertices.clear();
 	Indices.clear();
-}*/
+}
+
 
 bool CEditableElementCommon::intersect(const NLMISC::CVector &rayStart, const NLMISC::CVector &rayEnd, NLMISC::CVector &rayHit, const NLMISC::CMatrix &mat)
 {
@@ -86,7 +104,7 @@ bool CEditableElementCommon::intersect(const NLMISC::CVector &rayStart, const NL
 	imat.invert();
 	//rayEnd = imat * rayEnd;
 	//rayStart = imat * rayStart;
-
+	
 	uint32 i;
 	for(i = 0; i<NbFaces; i++)
 	{
@@ -105,7 +123,8 @@ bool CEditableElementCommon::intersect(const NLMISC::CVector &rayStart, const NL
 			return true;
 		}
 	}
-
+	
+	
 	return false;
 }
 
@@ -119,19 +138,36 @@ CMatrix CEditableElementCommon::transformMatrix()
 	return res;
 }
 
-#ifndef MT_SERVER
+CAngleAxis CEditableElementCommon::rotation()
+{
+	return Rotation;
+}
 
+
+#ifndef MTPT_SERVER
 using namespace NL3D;
 
 void CEditableElementCommon::show()
 {
-	if(!Mesh.empty()) Mesh.show();
+	if(!Mesh.empty())
+		Mesh.show();
 }
 
 void CEditableElementCommon::hide()
 {
-	if(!Mesh.empty()) Mesh.hide();
+	if(!Mesh.empty())
+		Mesh.hide();
 }
+
+/*
+void CEditableElementCommon::position(CVector pos)
+{
+	Position = pos;
+	Mesh->setPos(pos);
+	_changed = true;
+	CLevelManager::getInstance().currentLevel().changed(true);
+}
+*/
 
 UInstance CEditableElementCommon::mesh()
 {
@@ -140,6 +176,6 @@ UInstance CEditableElementCommon::mesh()
 
 void CEditableElementCommon::renderSelection()
 {
-}
 
+}
 #endif

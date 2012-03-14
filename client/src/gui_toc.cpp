@@ -1,21 +1,22 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-// 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-// Vianney Lecroart - acemtp@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
 
 
 //
@@ -24,44 +25,51 @@
 
 #include "stdpch.h"
 
-#if 0
-
-#include "gui.h"
-#include "level.h"
-#include "module.h"
 #include "3d_task.h"
-#include "gui_toc.h"
-#include "gui_xml.h"
 #include "chat_task.h"
 #include "time_task.h"
-#include "particles.h"
+#include "resource_manager2.h"
+#include "gui_toc.h"
+#include "gui_xml.h"
+
+#include "entity_lua_proxy.h"
+#include "level.h"
+#include "gui.h"
 #include "network_task.h"
+
 
 
 //
 // Namespaces
 //
 
-using namespace NLMISC;
+using namespace std;
 using namespace NL3D;
+using namespace NLMISC;
+
+
+//
+// Variables
+//
+
 
 //
 // Functions
 //
-
+	
 CGuiToc::CGuiToc()
 {
 	_element = 0;
 
 	LuaState = luaOpen();
-	Lunar<CEntity>::registerMethods(LuaState);
-	Lunar<CModule>::registerMethods(LuaState);
-	Lunar<CParticles>::registerMethods(LuaState);
+	Lunar<CEntityProxy>::Register(LuaState);
+	Lunar<CModuleProxy>::Register(LuaState);
+	Lunar<CParticlesProxy>::Register(LuaState);
 
-	Lunar<CGuiObject>::registerMethods(LuaState);
-	Lunar<CGuiListView>::registerMethods(LuaState);
-	Lunar<CGuiBox>::registerMethods(LuaState);
-	Lunar<CGuiText>::registerMethods(LuaState);
+	Lunar<CGuiObject>::Register(LuaState);
+	Lunar<CGuiListView>::Register(LuaState);
+	Lunar<CGuiBox>::Register(LuaState);
+	Lunar<CGuiText>::Register(LuaState);
 
 	lua_register(LuaState, "getEntityByName", CLevel::getEntityByName);	
 	lua_register(LuaState, "getEntityById", CLevel::getEntityById);
@@ -70,6 +78,7 @@ CGuiToc::CGuiToc()
 	lua_register(LuaState, "sendCommand", CGuiToc::sendCommand);
 	lua_register(LuaState, "sendToConsole", CGuiToc::sendToConsole);
 	lua_register(LuaState, "loadXml", CGuiToc::loadXml);
+
 }
 
 CGuiToc::~CGuiToc()
@@ -106,7 +115,7 @@ void CGuiToc::render(const NLMISC::CVector &pos, NLMISC::CVector &maxSize)
 }
 
 
-void CGuiToc::onLogin(const ucstring &name)
+void CGuiToc::onLogin(const string &name)
 {
 	if(LuaState)
 	{
@@ -117,7 +126,7 @@ void CGuiToc::onLogin(const ucstring &name)
 			return;
 		}
 		
-		lua_pushstring(LuaState,name.toUtf8().c_str());
+		lua_pushstring(LuaState,name.c_str());
 		int res = lua_pcall (LuaState,1,0,0);
 		if (res) 
 		{
@@ -130,7 +139,7 @@ void CGuiToc::onLogin(const ucstring &name)
 	}
 }
 
-void CGuiToc::onLogout(const ucstring &name)
+void CGuiToc::onLogout(const string &name)
 {
 	if(LuaState)
 	{
@@ -141,7 +150,7 @@ void CGuiToc::onLogout(const ucstring &name)
 			return;
 		}
 		
-		lua_pushstring(LuaState,name.toUtf8().c_str());
+		lua_pushstring(LuaState,name.c_str());
 		int res = lua_pcall (LuaState,1,0,0);
 		if (res) 
 		{
@@ -171,15 +180,14 @@ CGuiToc *CGuiToc::Load(const string &filename)
 		}		
 		else
 		{
+			nlassert(false);
 			delete res;
-			res = 0;
-			nlstop;
 			return 0;
 		}
 	}
 	else
 	{
-		nlstop;
+		nlassert(false);
 		return 0;
 	}
 
@@ -205,7 +213,7 @@ CGuiToc *CGuiToc::Load(const string &filename)
 
 int CGuiToc::sendChat(lua_State *L)
 {
-	unsigned int len;
+	size_t len;
 	const char *charChatLine= luaL_checklstring(L, 1, &len);
 	string chatLine(charChatLine);
 	CNetworkTask::getInstance().chat(chatLine);
@@ -214,7 +222,7 @@ int CGuiToc::sendChat(lua_State *L)
 
 int CGuiToc::sendCommand(lua_State *L)
 {
-	unsigned int len;
+	size_t len;
 	const char *cCommandLine= luaL_checklstring(L, 1, &len);
 	string cmdLine(cCommandLine);
 	CNetworkTask::getInstance().command(cmdLine);
@@ -223,7 +231,7 @@ int CGuiToc::sendCommand(lua_State *L)
 
 int CGuiToc::sendToConsole(lua_State *L)
 {
-	unsigned int len;
+	size_t len;
 	const char *cText= luaL_checklstring(L, 1, &len);
 	string text(cText);
 	CChatTask::getInstance().addToInput(text);
@@ -232,7 +240,7 @@ int CGuiToc::sendToConsole(lua_State *L)
 
 int CGuiToc::getGuiElementByName(lua_State *L)
 {
-	unsigned int len;
+	size_t len;
 	const char *elementName = luaL_checklstring(L, 1, &len);
 	string name(elementName);
 	CGuiObject *object = CGuiCustom::getInstance().getTocByLuaState(L)->xml->get(name);
@@ -247,7 +255,7 @@ int CGuiToc::getGuiElementByName(lua_State *L)
 
 int CGuiToc::loadXml(lua_State *L)
 {
-	unsigned int len;
+	size_t len;
 	const char *cfileName = luaL_checklstring(L, 1, &len);
 	string filename(cfileName);
 
@@ -261,4 +269,4 @@ int CGuiToc::loadXml(lua_State *L)
 	return 0;
 }
 
-#endif // 0
+

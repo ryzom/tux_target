@@ -1,24 +1,37 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-// 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-// Vianney Lecroart - gpl@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
 
-#ifndef MT_WATER_TASK_H
-#define MT_WATER_TASK_H
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
+
+
+//
+// This is the main class that manages all other classes
+//
+
+#ifndef MTPT_WATER_TASK_H
+#define MTPT_WATER_TASK_H
+
+
+//
+// Includes
+//
+
+#include <nel/3d/transform_shape.h>
 
 
 //
@@ -34,7 +47,6 @@ namespace NL3D
 	class CWaterModel;
 }
 
-
 //
 // Classes
 //
@@ -48,21 +60,36 @@ public:
 	virtual void render();
 	virtual void release();
 
-	virtual string name() const { return "CWaterTask"; }
+	virtual std::string name() const { return "CWaterTask"; }
 
-	void setWater(const string &name);	// sun or snow
+	void envMap0Name(const std::string &envMapName);
+	void envMap1Name(const std::string &envMapName);
+	void heightMap0Name(const std::string &heightMap);
+	void heightMap1Name(const std::string &heightMap);
 
+	std::string envMap0Name();
+	std::string envMap1Name();
+	std::string heightMap0Name();
+	std::string heightMap1Name();
+	
+	friend class NLMISC::CSingleton<CWaterTask>;
+protected:
+	CWaterTask();
+	
 private:
 
-	CWaterTask();
-
+	NL3D::UScene			*nelWaterScene;
 	NL3D::CWaterShape		*WaterShape;
 	NL3D::CWaterModel		*WaterModel;
 	NL3D::UInstance			WaterMesh;	
 	NL3D::CTransformShape   *WaterInstance;
 
+	std::string EnvMap0Name;
+	std::string EnvMap1Name;
+	std::string HeightMap0Name;
+	std::string HeightMap1Name;
+	
 	friend void cbVar (NLMISC::CConfigFile::CVar &var);
-	friend class NLMISC::CSingleton<CWaterTask>;
 };
 
 #endif

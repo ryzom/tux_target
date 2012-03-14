@@ -1,21 +1,22 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-// 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-// Vianney Lecroart - gpl@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
 
 
 //
@@ -25,36 +26,47 @@
 #include "stdpch.h"
 
 #include "3d_task.h"
-#include "gui_xml.h"
-#include "gui_text.h"
 #include "time_task.h"
-#include "mtp_target.h"
+#include "resource_manager2.h"
 #include "font_manager.h"
+#include "gui_text.h"
 #include "gui_multiline_text.h"
 #include "gui_stretched_quad.h"
+#include "gui_xml.h"
 
 
 //
 // Namespaces
 //
 
-using namespace NLMISC;
+using namespace std;
 using namespace NL3D;
+using namespace NLMISC;
 
 
 //
-// Functions
+// Variables
 //
+const char CGuiText::className[] = "CGuiText";
+
+Lunar<CGuiText>::RegType CGuiText::methods[] = 
+{
+	bind_method(CGuiText, getName),	
+	bind_method(CGuiText, getString),	
+	bind_method(CGuiText, setString),	
+	{0,0}
+};
+
 
 int CGuiText::getName(lua_State *luaSession)
 {
-	lua_pushstring(luaSession, name().c_str());
+	lua_pushstring(luaSession,name().c_str());
 	return 1;
 }
 
 int CGuiText::getString(lua_State *luaSession)
 {
-	lua_pushstring(luaSession, Text.toUtf8().c_str());
+	lua_pushstring(luaSession,text.c_str());
 	return 1;
 }
 
@@ -62,113 +74,110 @@ int CGuiText::setString(lua_State *luaSession)
 {
 	size_t len;
 	const char *cnewText= luaL_checklstring(luaSession, 1, &len);
-	setText(ucstring::makeFromUtf8(cnewText));
+	string newText(cnewText);
+	text = newText;
 	return 0;
 }
 
-void CGuiText::setText(const ucstring &text)
-{
-	if(!isEntry() && isI18N()) Text = convertVariableString(text);
-	else Text = text;
 
-	TextSize = CGuiMultilineText::size(false, CFontManager::instance().guiFontSize(), Text);
-}
 
-template<class OutIt> void split(const ucstring &s, ucchar sep, OutIt dest)
+//
+// Functions
+//
+	
+template<class OutIt> void Split( const std::string& s, char sep, OutIt dest ) 
 {
-	ucstring::size_type left = 0;
-	ucstring::size_type right = left;
-	while (left <= s.size())
+	std::string::size_type left = 0;
+	std::string::size_type right = left;
+	while( left <= s.size())
 	{
-		right = left;
-		for(; right != s.size() && s[right] != sep; right++)
-			;
-		*dest = s.substr (left, right-left);
+		right=left;
+		for(;right != s.size() && s[right]!=sep;right++);
+		*dest = s.substr( left, right-left );
 		++dest;
-		if(right == s.size())
-			break;
-		left = right + 1;
+		if(right==s.size()) break;
+		left = right+1;
 	}
 }
+
+
 
 void CGuiTextManager::init()
 {
 	string res;
-	res = CPath::lookup("cursor.tga");
-	CursorTexture = C3DTask::instance().driver().createTextureFile(res);
-	nlassert(CursorTexture);
-	CursorTexture->setWrapS(UTexture::Clamp);
-	CursorTexture->setWrapT(UTexture::Clamp);
-
-	CursorMaterial = C3DTask::instance().createMaterial();
-	CursorMaterial.setTexture(CursorTexture);
-	CursorMaterial.setBlend(true);
-	CursorMaterial.setZFunc(UMaterial::always);
-	CursorMaterial.setDoubleSided();
-
-	res = CPath::lookup("entry.tga");
-	EntryTexture = C3DTask::instance().driver().createTextureFile(res);
-	nlassert(EntryTexture);
-	EntryTexture->setWrapS(UTexture::Clamp);
-	EntryTexture->setWrapT(UTexture::Clamp);
-
-	EntryMaterial = C3DTask::instance().createMaterial();
-	EntryMaterial.setTexture(EntryTexture);
-	EntryMaterial.setBlend(true);
-	EntryMaterial.setZFunc(UMaterial::always);
-	EntryMaterial.setDoubleSided();
-
-	CGuiText::xmlRegister();
-	CGuiTextPercent::xmlRegister();
+	res = CResourceManager::getInstance().get("cursor.tga");
+	_cursorTexture = C3DTask::getInstance().driver().createTextureFile(res);
+	nlassert(_cursorTexture);
+	_cursorTexture->setWrapS(UTexture::Clamp);
+	_cursorTexture->setWrapT(UTexture::Clamp);
+	
+	_cursorMaterial = C3DTask::getInstance().createMaterial();
+	_cursorMaterial.setTexture(_cursorTexture);
+	_cursorMaterial.setBlend(true);
+	_cursorMaterial.setZFunc(UMaterial::always);
+	_cursorMaterial.setDoubleSided();
+	
+	res = CResourceManager::getInstance().get("entry.tga");
+	_entryTexture = C3DTask::getInstance().driver().createTextureFile(res);
+	nlassert(_entryTexture);
+	_entryTexture->setWrapS(UTexture::Clamp);
+	_entryTexture->setWrapT(UTexture::Clamp);
+	
+	_entryMaterial = C3DTask::getInstance().createMaterial();
+	_entryMaterial.setTexture(_entryTexture);
+	_entryMaterial.setBlend(true);
+	_entryMaterial.setZFunc(UMaterial::always);
+	_entryMaterial.setDoubleSided();
+	
+	CGuiText::XmlRegister();
+	CGuiTextPercent::XmlRegister();
 }
-
+	
 void CGuiTextManager::render()
 {
 }
 
 void CGuiTextManager::release()
 {
+	
 }
+
 
 UMaterial CGuiTextManager::cursorMaterial()
 {
-	return CursorMaterial;
+	return _cursorMaterial;
 }
 
 UMaterial CGuiTextManager::entryMaterial()
 {
-	return EntryMaterial;
+	return _entryMaterial;
 }
 
 //
 //
 //
+int CGuiTextCursor::_FrameCount = 0;
 
-TTime CGuiTextCursor::CursorBlinkTime = 0;
-
-void CGuiTextCursor::reset()
+void CGuiTextCursor::Reset()
 {
-	CursorBlinkTime = CTime::getLocalTime();
+	_FrameCount = 0;
 }
 
-void CGuiTextCursor::_render(const CVector &position,int height)
+void CGuiTextCursor::Render(const CVector &position,int height)
 {
-	H_AUTO2;
-	
-	TTime ct = CTime::getLocalTime();
-	if(ct - CursorBlinkTime < 500)
+	_FrameCount++;
+	if(_FrameCount<30)
 	{
 		CGuiStretchedQuad quad;
 		quad.stretched(false);
-		quad.material(CGuiTextManager::instance().cursorMaterial());
+		quad.material(CGuiTextManager::getInstance().cursorMaterial());
 		quad.size(CVector(2,(float)height,0));
 		quad.position(position);
 		quad.render();
 	}
-	if(ct - CursorBlinkTime > 1000)
-	{
-		CursorBlinkTime = ct;
-	}
+	
+	_FrameCount = _FrameCount % 60;
+	
 }
 
 
@@ -176,81 +185,71 @@ void CGuiTextCursor::_render(const CVector &position,int height)
 //
 //
 
-void CGuiText::init(const ucstring &text)
+void CGuiText::_init(const string &text)
 {
-	CursorIndex = 0;	// must be init here because cursorIndex() make a if() with this value that is not init the first time
+	this->text = text;
+	_cursorIndex = 0;	// must be init here becaise cursorIndex() make a if() with this value that is not init the first time
 	cursorIndex(0);
-	IsEditable  = false;
-	IsEntry     = false;
-	IsPassword  = false;
-	IsMultiline = true;
-	IsI18N      = true;
-	setText(text);
+	_isEditable  = false;
+	_isEntry     = false;	
+	_isPassword  = false;
+	_isMultiline = true;
 }
 
-CGuiText::CGuiText(const ucstring &text, bool i18n)
+CGuiText::CGuiText(const string &text)
 {
-	init(ucstring(""));
-	IsI18N = i18n;
-	setText(text);
+	_init(text);
 }
 
 CGuiText::CGuiText()
 {
-	init(ucstring(""));
+	_init("");
 }
 
 CGuiText::~CGuiText()
 {
+	
 }
 
-void CGuiText::insert(ucchar c)
+void CGuiText::insert(char c)
 {
-	ucstring insertedString;
+	string insertedString;
 	insertedString += c;
-	setText(Text.substr(0,cursorIndex()) + insertedString + Text.substr(cursorIndex(), Text.size()));
+	text = text.substr(0,cursorIndex()) + insertedString + text.substr(cursorIndex(),text.size());
 	cursorIndex(cursorIndex()+1);
-	CGuiTextCursor::reset();
+	CGuiTextCursor::Reset();	
 }
 
-static ucstring strToPassword(const ucstring &str, bool active)
+static string strToPassword(string str,bool active)
 {
 	if(!active) return str;
 
-	ucstring res;
-	for(uint i = 0; i < str.size(); i++)
+	string res = "";
+	for(uint i=0;i<str.size();i++)
 	{
-		if(str[i] == '\n')
-			res += '\n';
+		if(str[i]!='\n')
+			res+='*';
 		else
-			res += '*';
+			res+='\n';
 	}
 	return res;
 }
 
-static ucstring strToMultiline(const ucstring &str, bool active)
+static string strToMultiline(string str,bool active)
 {
 	if(active) return str;
 
-	ucstring res;
-	for(uint i = 0; i < str.size(); i++)
+	string res = "";
+	for(uint i=0;i<str.size();i++)
 	{
-		if(str[i] != '\n')
-			res += str[i];
+		if(str[i]!='\n')
+			res+=str[i];
 	}
 	return res;
 }
 
-void CGuiText::text(const ucstring &t)
+void CGuiText::_render(const CVector &pos,CVector &maxSize)
 {
-	setText(t);
-	cursorIndex(t.size());
-}
-
-
-void CGuiText::_render(const CVector &pos, CVector &maxSize)
-{
-	H_AUTO2;
 	CVector globalPos = globalPosition(pos,maxSize);
 	CVector cursorPos(0,0,0);
 
@@ -259,7 +258,7 @@ void CGuiText::_render(const CVector &pos, CVector &maxSize)
 	if(isEntry())
 	{
 		CGuiStretchedQuad quad;
-		quad.material(CGuiTextManager::instance().entryMaterial());
+		quad.material(CGuiTextManager::getInstance().entryMaterial());
 		quad.size(expSize);
 		quad.position(globalPosition(pos,maxSize));
 		quad.render();
@@ -268,108 +267,80 @@ void CGuiText::_render(const CVector &pos, CVector &maxSize)
 	if(isEntry())
 		globalPos += CVector(2,2,0);
 
-	ucstring text;
-	text = strToMultiline(Text, isMultiline());
-	CGuiMultilineText::print(globalPos.x , globalPos.y, cursorIndex(), cursorPos, strToPassword(text, isPassword()));
+	text = strToMultiline(text,isMultiline());
+	CGuiMultilineText::print(globalPos.x , globalPos.y, cursorIndex(), cursorPos, strToPassword(text,isPassword()));
 
 	if(focused() && isEntry())
 	{
-		CGuiTextCursor::_render(cursorPos, CFontManager::instance().guiFontSize());
+		CGuiTextCursor::Render(cursorPos,CFontManager::getInstance().guiFontSize());
 		if(isEditable())
 		{
-			ucstring res = C3DTask::instance().kbGetString();
-			for (uint32 i = 0; i < res.size() ; i++)
+			string res = C3DTask::getInstance().kbGetString();
+			if(res.size())
 			{
-				if (res[i] == 8)
-				{ // Backspace
-					if (text.length() > 0 && cursorIndex() > 0)
-					{
-						setText(text.substr(0, cursorIndex()-1) + text.substr(cursorIndex(), text.size()));
-						cursorIndex(cursorIndex()-1);
-					}
-					continue;
-				}
-				else if(res[i] == '\r')
+				for (const char *src = res.c_str(); *src != '\0';src++)
 				{
-					if(isMultiline())
+					if (*src == 8)
+					{ // Backspace
+						if (text.length() > 0 && cursorIndex()>0)
+						{
+							text = text.substr(0,cursorIndex()-1) + text.substr(cursorIndex(),text.size());
+							cursorIndex(cursorIndex()-1);
+						}
+						continue;
+					}
+
+					if(isprint(*src))
+						insert(*src);
+					if((*src)==13 && isMultiline())
 						insert('\n');
 				}
-				else
-				{
-					insert(res[i]);
-				}
 			}
-
-			if (C3DTask::instance().kbPressed(KeyDELETE))
+			
+			if (C3DTask::getInstance().kbPressed(KeyDELETE))
 			{
-				if (text.length() > 0 && cursorIndex() < text.size())
+				if (text.length() > 0 && cursorIndex()<text.size())
 				{
-					setText(text.substr(0, cursorIndex()) + text.substr(cursorIndex()+1, text.size()));
+					text = text.substr(0,cursorIndex()) + text.substr(cursorIndex()+1,text.size());
 				}
 			}
 
-#ifdef NL_OS_WINDOWS
-			// Insert the clipboard
-			if (C3DTask::instance().kbDown(KeySHIFT) && C3DTask::instance().kbPressed(KeyINSERT))
-			{
-				if (OpenClipboard(NULL))
-				{
-					HANDLE hObj=GetClipboardData(CF_UNICODETEXT);
-					if (hObj)
-					{
-						wchar_t *sString=(wchar_t*)GlobalLock(hObj);
-						if(sString != NULL)
-						{
-							for(unsigned int i = 0; i < wcslen(sString); i++)
-							{
-								ucchar ch = ucchar(sString[i]);
-								if(ch == '\t') ch = ' ';
-								else if(ch == '\r') continue;
-								else if(ch == '\n') break;
-								insert(ch);
-							}
-							GlobalUnlock (hObj);
-						}
-					}
-					CloseClipboard ();
-				}
-			}
-#endif // NL_OS_WINDOWS
-
-			if (C3DTask::instance().kbPressed(KeyUP))
+			if (C3DTask::getInstance().kbPressed(KeyUP))
 				cursorUp();
-			if (C3DTask::instance().kbPressed(KeyDOWN))
+			if (C3DTask::getInstance().kbPressed(KeyDOWN))
 				cursorDown();
-			if (C3DTask::instance().kbPressed(KeyLEFT))
+			if (C3DTask::getInstance().kbPressed(KeyLEFT))
 				cursorLeft();
-			if (C3DTask::instance().kbPressed(KeyRIGHT))
+			if (C3DTask::getInstance().kbPressed(KeyRIGHT))
 				cursorRight();
-			if (C3DTask::instance().kbPressed(KeyHOME))
+			if (C3DTask::getInstance().kbPressed(KeyHOME))
 				cursorHome();
-			if (C3DTask::instance().kbPressed(KeyEND))
+			if (C3DTask::getInstance().kbPressed(KeyEND))
 				cursorEnd();
 		}
 	}
 
+
 	maxSize = expSize;
+	
 }
 
 
 void CGuiText::cursorHome()
 {
-	vector<ucstring> vstr;
-	split(Text, '\n', back_inserter(vstr));
-
+	std::vector<std::string> vstr;
+	Split(text, '\n', std::back_inserter(vstr));
+	
 	uint pos = 0;
 	uint column;
 	uint line;
 	uint home;
-	for(uint j = 0; j < vstr.size(); j++)
+	for(uint j=0;j<vstr.size();j++)
 	{
 		home = pos;
-		for(uint i = 0; i <= vstr[j].size(); i++, pos++)
+		for(uint i=0;i<=vstr[j].size();i++,pos++)
 		{
-			if(pos == cursorIndex())
+			if( pos==cursorIndex() )
 			{
 				column = i;
 				line = j;
@@ -378,13 +349,14 @@ void CGuiText::cursorHome()
 			}
 		}
 	}
+	
 }
 
 void CGuiText::cursorEnd()
 {
-	vector<ucstring> vstr;
-	split(Text, '\n', back_inserter(vstr));
-
+	std::vector<std::string> vstr;
+	Split(text, '\n', std::back_inserter(vstr));
+	
 	uint pos = 0;
 	uint column;
 	uint line;
@@ -403,17 +375,17 @@ void CGuiText::cursorEnd()
 			}
 		}
 	}
-
+	
 }
 
 void CGuiText::cursorUp()
 {
-	vector<ucstring> vstr;
-	split(Text, '\n', back_inserter(vstr));
+	std::vector<std::string> vstr;
+	Split(text, '\n', std::back_inserter(vstr));
 
 	uint pos = 0;
-	uint column = 0;
-	uint line = 0;
+	uint column;
+	uint line;
 	for(uint j=0;j<vstr.size();j++)
 	{
 		for(uint i=0;i<=vstr[j].size();i++,pos++)
@@ -425,7 +397,7 @@ void CGuiText::cursorUp()
 			}
 		}
 	}
-
+	
 	pos=0;
 	for(uint j=0;j<vstr.size();j++)
 	{
@@ -444,12 +416,12 @@ void CGuiText::cursorUp()
 
 void CGuiText::cursorDown()
 {
-	vector<ucstring> vstr;
-	split(Text, '\n', back_inserter(vstr));
-
+	std::vector<std::string> vstr;
+	Split(text, '\n', std::back_inserter(vstr));
+	
 	uint pos = 0;
-	uint column = 0;
-	uint line = 0;
+	uint column;
+	uint line;
 	for(uint j=0;j<vstr.size();j++)
 	{
 		for(uint i=0;i<=vstr[j].size();i++,pos++)
@@ -461,7 +433,7 @@ void CGuiText::cursorDown()
 			}
 		}
 	}
-
+	
 	pos=0;
 	for(uint j=0;j<vstr.size();j++)
 	{
@@ -482,22 +454,24 @@ void CGuiText::cursorLeft()
 	if(cursorIndex()>0)
 	{
 		cursorIndex(cursorIndex()-1);
-		CGuiTextCursor::reset();
+		CGuiTextCursor::Reset();				
 	}
 }
 
 void CGuiText::cursorRight()
 {
 	cursorIndex(cursorIndex()+1);
-	if(cursorIndex() > Text.size())
-		cursorIndex(Text.size());
+	if(cursorIndex()>text.size())
+		cursorIndex(text.size());
 	else
-		CGuiTextCursor::reset();
+		CGuiTextCursor::Reset();				
 }
+
+
 
 float CGuiText::_width()
 {
-	float w = TextSize.x;
+	float w = CGuiMultilineText::size(false, CFontManager::getInstance().guiFontSize(),text).x;
 	if(isEntry())
 		return w + 4;
 	else
@@ -506,27 +480,69 @@ float CGuiText::_width()
 
 float CGuiText::_height()
 {
-	float h = TextSize.y;
+	float h = CGuiMultilineText::size(false, CFontManager::getInstance().guiFontSize(),text).y;
 	if(isEntry())
 		return h + 4;
 	else
 		return h;
 }
 
-void CGuiText::cursorIndex(uint cursorIndex)
+
+void CGuiText::isEditable(bool isEditable)
 {
+	_isEditable = isEditable;
+}
+
+bool CGuiText::isEditable()
+{
+	return _isEditable;
+}
+
+void CGuiText::isEntry(bool isEntry)
+{
+	_isEntry = isEntry;
+}
+
+bool CGuiText::isEntry()
+{
+	return _isEntry;
+}
+
+void CGuiText::isPassword(bool isPassword)
+{
+	_isPassword = isPassword;
+}
+
+bool CGuiText::isPassword()
+{
+	return _isPassword;
+}
+
+void CGuiText::isMultiline(bool isMultiline)
+{
+	_isMultiline = isMultiline;
+}
+
+bool CGuiText::isMultiline()
+{
+	return _isMultiline;
+}
+
+void CGuiText::cursorIndex(int cursorIndex)
+{
+	uint ucursorIndex = cursorIndex;
 	if(cursorIndex<0)
-		cursorIndex = 0;
-	if(CursorIndex != cursorIndex)
+		ucursorIndex = 0;
+	if(_cursorIndex!=ucursorIndex)
 	{
-		CursorIndex = cursorIndex;
-		CGuiTextCursor::reset();
+		_cursorIndex = ucursorIndex;
+		CGuiTextCursor::Reset();				
 	}
 }
 
 uint CGuiText::cursorIndex()
 {
-	return CursorIndex;
+	return _cursorIndex;
 }
 
 void CGuiText::luaPush(lua_State *L)
@@ -534,21 +550,22 @@ void CGuiText::luaPush(lua_State *L)
 	Lunar<CGuiText>::push(L, this);
 }
 
-void CGuiText::xmlRegister()
+void CGuiText::XmlRegister()
 {
-	CGuiObjectManager::instance().registerClass("CGuiText", CGuiText::create);
+	CGuiObjectManager::getInstance().registerClass("CGuiText",CGuiText::Create);
 }
 
-CGuiObject *CGuiText::create()
+CGuiObject *CGuiText::Create()
 {
 	CGuiObject *res = new CGuiText;
-	return res;
-}
 	
+	return res;	
+}
+
 void CGuiText::init(CGuiXml *xml,xmlNodePtr node)
 {
 	CGuiObject::init(xml,node);
-
+	xml->getString(node,"string",text);
 	bool b;
 	if(xml->getBool(node,"isEntry",b))
 		isEntry(b);
@@ -558,53 +575,57 @@ void CGuiText::init(CGuiXml *xml,xmlNodePtr node)
 		isPassword(b);
 	if(xml->getBool(node,"isMultiline",b))
 		isMultiline(b);
-	if(xml->getBool(node,"isI18N",b))
-		isI18N(b);
-
-	string res;
-	xml->getString(node,"string",res);
-	setText(ucstring::makeFromUtf8(res));
 }
 
 
+
+
 //
 //
 //
 
-CGuiTextPercent::CGuiTextPercent() : CGuiText()
+
+CGuiTextPercent::CGuiTextPercent():CGuiText()
 {
-	PtrValue = 0;
-	isI18N(false);
+	_ptrValue = 0;
 }
 
 CGuiTextPercent::~CGuiTextPercent()
 {
+	
 }
 
-void CGuiTextPercent::_render(const CVector &pos, CVector &maxSize)
+void CGuiTextPercent::_render(const CVector &pos,CVector &maxSize)
 {
-	H_AUTO2;
 	char ch[256];
-	if(PtrValue)
-		sprintf(ch, "%.0f%%", *PtrValue * 100);
+	if(_ptrValue)
+		sprintf(ch,"%.0f%%",*_ptrValue * 100);
 	else
-		sprintf(ch, "0%");
-	setText(ucstring(ch));
-	CGuiText::_render(pos, maxSize);
+		sprintf(ch,"0%");
+	text = ch;
+	CGuiText::_render(pos,maxSize);
 }
 
-void CGuiTextPercent::xmlRegister()
+void CGuiTextPercent::ptrValue(float *ptrValue)
 {
-	CGuiObjectManager::instance().registerClass("CGuiTextPercent",CGuiTextPercent::create);
+	_ptrValue = ptrValue;
 }
 
-CGuiObject *CGuiTextPercent::create()
+
+void CGuiTextPercent::XmlRegister()
+{
+	CGuiObjectManager::getInstance().registerClass("CGuiTextPercent",CGuiTextPercent::Create);
+}
+
+CGuiObject *CGuiTextPercent::Create()
 {
 	CGuiObject *res = new CGuiTextPercent;
-	return res;
+	
+	return res;	
 }
 
 void CGuiTextPercent::init(CGuiXml *xml,xmlNodePtr node)
 {
 	CGuiText::init(xml,node);
 }
+

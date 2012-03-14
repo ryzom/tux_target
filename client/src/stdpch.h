@@ -1,33 +1,26 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-// 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-// Vianney Lecroart - gpl@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
 
 #define USE_JPEG
 
-#define CURL_STATICLIB
-
 #include "nel/misc/types_nl.h"
-
-#ifdef NL_OS_WINDOWS
-#	define NOMINMAX
-#	include <winsock2.h>
-#	include <windows.h>
-#endif
 
 #include <math.h>
 #include <stdio.h>
@@ -42,7 +35,6 @@
 #include <algorithm>
 #include <exception>
 
-#include <nel/misc/i18n.h>
 #include <nel/misc/file.h>
 #include <nel/misc/path.h>
 #include <nel/misc/debug.h>
@@ -50,7 +42,6 @@
 #include <nel/misc/matrix.h>
 #include <nel/misc/common.h>
 #include <nel/misc/events.h>
-#include <nel/misc/bsphere.h>
 #include <nel/misc/fast_mem.h>
 #include <nel/misc/singleton.h>
 #include <nel/misc/config_file.h>
@@ -64,21 +55,8 @@
 #include <nel/3d/u_instance.h>
 #include <nel/3d/u_text_context.h>
 #include <nel/3d/u_particle_system_instance.h>
-#include <nel/3d/u_visual_collision_manager.h>
-
-using namespace std;
-
-#ifdef NL_OS_WINDOWS
-#	define USE_FMOD
-#	include <fmodex/fmod.hpp>
-#	include <fmodex/fmod_errors.h>
-#elif defined(USE_FMOD)
-#	include <fmod.hpp>
-#	include <fmod_errors.h>
-#endif
-
 
 // must be the first mtp target include
-#include "../../common/constant.h"
+#include "global.h"
 
 #include "task.h"

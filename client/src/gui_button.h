@@ -1,42 +1,49 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-// 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-// Vianney Lecroart - gpl@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
 
-#ifndef MT_GUI_BUTTON_H
-#define MT_GUI_BUTTON_H
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
+
+
+//
+// This is the main class that manages all other classes
+//
+
+#ifndef MTPT_GUI_BUTTON_H
+#define MTPT_GUI_BUTTON_H
 
 
 //
 // Includes
 //
-
 #include "gui_bin.h"
+
 
 
 //
 // Classes
 //
-
-struct CGuiButtonEventBehaviour : public CGuiEventBehaviour
+class CGuiButtonEventBehaviour : public CGuiEventBehaviour
 {
-	CGuiButtonEventBehaviour() { }
-	virtual ~CGuiButtonEventBehaviour() { }
-	virtual void onPressed() = 0;
+public:
+	CGuiButtonEventBehaviour();
+	virtual ~CGuiButtonEventBehaviour();
+
+	virtual void onPressed();
 };
 
 
@@ -45,16 +52,16 @@ class CGuiButton : public CGuiBin
 public:
 	CGuiButton(NL3D::UMaterial normalBitmap);
 	CGuiButton(NL3D::UMaterial normalBitmap, NL3D::UMaterial activeBitmap);
-	CGuiButton(const string &normalBitmap);
-	CGuiButton(const string &normalBitmap, const string &activeBitmap);
+	CGuiButton(const std::string &normalBitmap);
+	CGuiButton(const std::string &normalBitmap, const std::string &activeBitmap);
 	CGuiButton();
 	virtual ~CGuiButton();
 
 	void resetBitmap();
 	void resetBitmap(NL3D::UMaterial normalBitmap);
 	void resetBitmap(NL3D::UMaterial normalBitmap, NL3D::UMaterial activeBitmap);
-	void resetBitmap(const string &normalBitmap);
-	void resetBitmap(const string &normalBitmap, const string &activeBitmap);
+	void resetBitmap(const std::string &normalBitmap);
+	void resetBitmap(const std::string &normalBitmap, const std::string &activeBitmap);
 	
 	virtual void _render(const NLMISC::CVector &pos, NLMISC::CVector &maxSize);
 
@@ -63,12 +70,11 @@ public:
 	virtual float borderWidth();
 	virtual float borderHeight();
 
-	static void xmlRegister();
-	static CGuiObject *create();
+	static void XmlRegister();
+	static CGuiObject *Create();
 	virtual void init(CGuiXml *xml,xmlNodePtr node);
 	bool pressed();
 
-	void visible(bool v) { _visible = v; }
 	guiSPG<CGuiButtonEventBehaviour> eventBehaviour;
 private:
 
@@ -80,10 +86,9 @@ private:
 	NL3D::UMaterial _normalBitmap;
 	NL3D::UMaterial _activeBitmap;
 
-	bool _visible;
 	bool _stretched;
 	bool _pressed;
-	string _onClickScript;
+	std::string _onClickScript;
 };
 
 class CGuiButtonManager : public NLMISC::CSingleton<CGuiButtonManager>

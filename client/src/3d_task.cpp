@@ -1,21 +1,22 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-//
-// Vianney Lecroart - gpl@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
 
 
 //
@@ -27,65 +28,39 @@
 #ifdef NL_OS_WINDOWS
 #	define NOMINMAX
 #	include <windows.h>
-#	include "resource.h"
+#	include "../resource.h"
 	extern HINSTANCE ghInstance;
 #endif
 
-#include <nel/misc/variable.h>
-
-#include <nel/3d/driver.h>
-//#include <3d/bloom_effect.h>
-
-#include <nel/3d/u_visual_collision_manager.h>
+#include <nel/3d/mesh.h>
+#include <nel/3d/shape.h>
+#include <nel/3d/material.h>
+#include <nel/3d/register_3d.h>
 
 #include "gui.h"
-#include "level.h"
-#include "fi_ime.h"
 #include "3d_task.h"
-#include "hud_task.h"
-#include "gui_task.h"
-#include "sky_task.h"
-#include "end_task.h"
-#include "chat_task.h"
 #include "time_task.h"
-#include "game_task.h"
-#include "water_task.h"
 #include "mtp_target.h"
-#include "score_task.h"
 #include "editor_task.h"
-#include "network_task.h"
-#include "font_manager.h"
-#include "swap_3d_task.h"
 #include "task_manager.h"
-#include "level_manager.h"
 #include "entity_manager.h"
-#include "lens_flare_task.h"
-#include "background_task.h"
 #include "config_file_task.h"
-#include "external_camera_task.h"
-
+#include "level_manager.h"
+#include "resource_manager2.h"
+	
 
 //
 // Namespaces
 //
 
-using namespace NLMISC;
+using namespace std;
 using namespace NL3D;
+using namespace NLMISC;
 
 
 //
 // Variables
 //
-
-CFullIME fi;
-
-CVariable<bool> Shadow("mtp", "Shadow", "Display or not dynamic shadows", true, 0, true);
-CVariable<uint8> ScreenShotQuality("mtp", "ScreenShotQuality", "Quality of the jpeg", true, 80, true);
-
-//static CBloomEffect be;
-
-//bool FastExit = true;
-
 
 //
 // Functions
@@ -122,67 +97,48 @@ void exitFunction()
 
 class CInterfaceListener : public IEventListener
 {
-	virtual void	operator() (const CEvent& ev)
+	virtual void	operator() ( const CEvent& event )
 	{
-		if(ev == EventIME)
+		if ( ! _MaxWidthReached )
 		{
-			const CEventIME &e = (const CEventIME &)ev;
-			//nlinfo("we have an ime event!!! %d %d %d", e.EventMessage, e.WParam, e.LParam);
-			bool trap = false;
-			if (fi.msgProc( e.EventMessage, e.WParam, e.LParam ) )
-				trap = true;
-			if ( fi.staticMsgProc( e.EventMessage, e.WParam, e.LParam ) )
-				trap = true;
-
-#ifdef NL_OS_WINDOWS
-			// The message was trapped by the event emitter, untrap it since msgProc or staticMsgProc says so
-			if(!trap)
-				::DefWindowProc( (HWND)C3DTask::instance().driver().getDisplay(), e.EventMessage, e.WParam, e.WParam );
-#endif
-		}
-		else
-		{
-			if ( ! _MaxWidthReached )
+			char c = (char)((CEventChar&)event).Char;
+			if(CEditorTask::getInstance().enable())
 			{
-				CEventChar &ec = (CEventChar&)ev;
-				ucchar c = ec.Char;
-				if(c != 9)	// discard TAB
-				{
-					//nldebug("---------- Adding char %u '%c'", c, c);
-					_Line += c;
-				}
+				if(c=='4' && C3DTask::getInstance().kbDown(KeyNUMPAD4))
+					return;
+				if(c=='6' && C3DTask::getInstance().kbDown(KeyNUMPAD6))
+					return;
+				if(c=='8' && C3DTask::getInstance().kbDown(KeyNUMPAD8))
+					return;
+				if(c=='5' && C3DTask::getInstance().kbDown(KeyNUMPAD5))
+					return;
 			}
+			_Line += c;
 		}
 	}
-
+	
 public:
 	CInterfaceListener() : _MaxWidthReached( false )
 	{}
-
+	
 	virtual ~CInterfaceListener() {}
-
-	const ucstring&	line() const
+	
+	const string&	line() const
 	{
 		return _Line;
 	}
-
-	void setLine(const ucstring &str) { _Line = str; }
-	void addLine(const ucstring &str)
-	{
-		//for (uint i = 0; i < str.size(); i++)
-			//nldebug("---------- %u Adding char %u '%c'", i, str[i], str[i]);
-		_Line += str;
-	}
-
+	
+	void setLine(const string &str) { _Line = str; }
+	
 	void			setMaxWidthReached( bool b )
 	{
 		_MaxWidthReached = b;
 	}
-
+	
 private:
-	ucstring		_Line;
+	string			_Line;
 	bool			_MaxWidthReached;
-	ucstring		_LastCommand;
+	string			_LastCommand;
 };
 
 static CInterfaceListener InterfaceListener;
@@ -192,18 +148,24 @@ void C3DTask::init()
 	ScreenWidth = CConfigFileTask::instance().configFile().getVar("ScreenWidth").asInt();
 	ScreenHeight = CConfigFileTask::instance().configFile().getVar("ScreenHeight").asInt();
 
-	CConfigFile::CVar v;
+	EnableExternalCamera = false;
 
-	v = CConfigFileTask::instance().configFile().getVar("ClearColor");
+	CConfigFile::CVar v;
+	v = CConfigFileTask::getInstance().configFile().getVar("AmbientColor");
+	nlassert(v.size()==4);
+	AmbientColor.set(v.asInt(0),v.asInt(1),v.asInt(2),v.asInt(3));
+	v = CConfigFileTask::getInstance().configFile().getVar("ClearColor");
 	nlassert(v.size()==4);
 	ClearColor.set(v.asInt(0),v.asInt(1),v.asInt(2),v.asInt(3));
+
 
 	// Create a driver
 	uint icon = 0;
 #ifdef NL_OS_WINDOWS
 	icon = (uint)LoadIcon(ghInstance,MAKEINTRESOURCE(IDI_ICON1));
 #endif
-	Driver = UDriver::createDriver(icon, true, exitFunction);
+	bool useD3D = !CConfigFileTask::instance().configFile().getVar("OpenGL").asBool();
+	Driver = UDriver::createDriver(icon, useD3D, exitFunction);
 	nlassert(Driver);
 
 	if(CConfigFileTask::instance().configFile().getVar("VSync").asInt() == 0)
@@ -222,7 +184,7 @@ void C3DTask::init()
 	uint8 aa = (CConfigFileTask::instance().configFile().getVar("AntiAlias").asInt()==1)?2:-1;
 
 	bool displayOk = false;
-	string reason;
+	std::string reason;
 	try
 	{
 		displayOk = Driver->setDisplay (UDriver::CMode(ScreenWidth, ScreenHeight, CConfigFileTask::instance().configFile().getVar("ScreenDepth").asInt(), !Fullscreen, CConfigFileTask::instance().configFile().getVar("ScreenFrequency").asInt(), aa), true, false);
@@ -239,7 +201,7 @@ void C3DTask::init()
 		nlwarning ("Can't set display mode %dx%d %dbpp %dHz %d", ScreenWidth, ScreenHeight, CConfigFileTask::instance().configFile().getVar("ScreenDepth").asInt(), CConfigFileTask::instance().configFile().getVar("ScreenFrequency").asInt(), !Fullscreen);
 		if(!reason.empty()) nlwarning ("Reason: %s", reason.c_str());
 
-		string OS, Proc, Mem, Gfx, Gfx2;
+		std::string OS, Proc, Mem, Gfx, Gfx2;
 		OS = CSystemInfo::getOS().c_str();
 		Proc = CSystemInfo::getProc().c_str();
 		Mem = toString(CSystemInfo::availablePhysicalMemory()) + " | " + toString(CSystemInfo::totalPhysicalMemory());
@@ -253,8 +215,8 @@ void C3DTask::init()
 
 		vector<UDriver::CMode> modes;
 		bool res = Driver->getModes(modes);
-		vector<UDriver::CMode>::iterator it;
-		nlinfo("Available video mode:");
+		std::vector<UDriver::CMode>::iterator it;
+		nlinfo("Available video mode: ");
 		if(modes.size()==0) nlinfo("   no video mode...");
 
 		for(it=modes.begin();it!=modes.end();it++)
@@ -264,18 +226,20 @@ void C3DTask::init()
 		}
 
 #ifdef NL_OS_WINDOWS
-		MessageBoxA (NULL, "Your graphic card is not supported by Mtp Target.\r\n\r\nTry to update your driver.\r\nIf you have modified mtp_target.cfg, be sure the resolution is ok. Or post a message on the forum.", "Error", MB_OK);
+		MessageBoxA (NULL, "Your graphic card is not supported by Tux Target.\r\n\r\nTry to update your driver.\r\nIf you have modified tux_target.cfg, be sure the resolution is ok. Or post a message on the forum.", "Error", MB_OK);
 #endif
 		exit(EXIT_FAILURE);
 	}
 
-	fi.init();
-
 	Driver->EventServer.addListener (EventCharId, &InterfaceListener);
-	Driver->EventServer.addListener (EventIME, &InterfaceListener);
 	//Driver->enableLowLevelKeyboard(true);
 
-	// create a scene
+	Driver->setAmbientColor(AmbientColor);
+
+	Driver->enableFog(false);
+	Driver->setupFog(CConfigFileTask::getInstance().configFile().getVar("FogDistMin").asFloat(),CConfigFileTask::getInstance().configFile().getVar("FogDistMax").asFloat(),ClearColor);
+
+	// Create a scene
 	Scene = Driver->createScene(false);
 
 	if (Scene == 0)
@@ -294,24 +258,32 @@ void C3DTask::init()
 	//CaptureCursor = false;
 
 	Scene->enableLightingSystem(true);
+	Scene->setSunAmbient(AmbientColor);
+	Scene->setSunDiffuse(CRGBA(255,255,255));
+	Scene->setSunSpecular(CRGBA(255,255,255));
+	Scene->setSunDirection(CVector(-1,0,-1));
 
 	Scene->setPolygonBalancingMode(UScene::PolygonBalancingOn);
-	Scene->setGroupLoadMaxPolygon("Fx", CConfigFileTask::instance().configFile().getVar("FxNbMaxPoly").asInt());
+	Scene->setGroupLoadMaxPolygon("Fx", CConfigFileTask::getInstance().configFile().getVar("FxNbMaxPoly").asInt());
 
-//	be.init(false, Driver, Scene);
 
-	if(Shadow)
+	LevelParticle = 0;
+	//too much particles , no left to trace.ps
+	if(CConfigFileTask::getInstance().configFile().getVar("DisplayParticle").asInt() == 1)
 	{
-		CollisionManager = Scene->createVisualCollisionManager();
-		nlassert(CollisionManager);
-		// Set this collision manager the one the scene must use for Shadow Reception on Buildings
-		Scene->setVisualCollisionManagerForShadow(CollisionManager);
-		CollisionManager->setPlayerInside(true);
+		string res;
+		res = CResourceManager::getInstance().get("snow.ps");
+		LevelParticle.cast(C3DTask::getInstance().scene().createInstance(res));
+		if (!LevelParticle.empty())
+		{
+			LevelParticle.setTransformMode(UTransformable::RotQuat);
+			LevelParticle.hide();
+			LevelParticle.setOrderingLayer(2);
+		}
 	}
 
-	fi.onFocus(true);
-
-	Driver->setWindowTitle("Mtp Target "+ReleaseVersion);
+	// TODO MTR find ReleaseVersion
+//	Driver->setWindowTitle("Mtp Target "+ReleaseVersion);
 }
 
 void C3DTask::update()
@@ -329,56 +301,65 @@ void C3DTask::update()
 
 void C3DTask::takeScreenShot()
 {
-	if(!CConfigFileTask::instance().configFile().exists("ScreenShot") || CConfigFileTask::instance().configFile().getVar("ScreenShot").asInt() == 0)
-		return;
-
-	string path = CConfigFileTask::instance().documentDirectory();
-	if(!CFile::isExists(path) && !CFile::createDirectoryTree(path)) path.clear();
-
 	CBitmap btm;
-	C3DTask::instance().driver().getBuffer (btm);
-	string filename = CFile::findNewFile (path+"screenshot.jpg");
-	COFile fs(filename);
-	btm.writeJPG(fs, ScreenShotQuality);
-	nlinfo("Screenshot '%s' saved", filename.c_str());
+	C3DTask::getInstance().driver().getBuffer (btm);
+	//		btm.flipV();
+	string filename = "";
+	if(CMtpTarget::getInstance().sessionFileName().size())
+		filename = CFile::findNewFile(CFile::getFilenameWithoutExtension(CMtpTarget::getInstance().sessionFileName())+"_.jpg");
+	else
+		filename = CFile::findNewFile ("screenshot.jpg");
+	COFile fs (filename);
+	btm.writeJPG(fs);
+	nlinfo("Screenshot '%s' saved", filename.c_str());	
 }
 
 void C3DTask::render()
 {
+	CViewport vp;
+	CScissor s;
+	
 	Driver->enableFog(true);
+	Scene->render();
 
-//	be.initBloom();
-
-	try
+	if(C3DTask::getInstance().kbDown(KeyMENU) && C3DTask::getInstance().kbPressed(KeyF2))
+		takeScreenShot();
+	
+	if(EnableExternalCamera && CLevelManager::getInstance().levelPresent() && CLevelManager::getInstance().currentLevel().ExternalCameras.size() > 0)
 	{
+		CMatrix oldmat = C3DTask::getInstance().scene().getCam().getMatrix();
+		
+		vp.init(0.69f,0.55f,0.3f,0.3f);
+		s.init(0.69f,0.55f,0.3f,0.3f);
+
+		LevelParticle.hide();
+		CMatrix m;
+		m.identity();
+		m.setPos(CLevelManager::getInstance().currentLevel().ExternalCameras[0].first);
+		m.setRot(CLevelManager::getInstance().currentLevel().ExternalCameras[0].second);
+		C3DTask::getInstance().scene().getCam().setMatrix(m);
+		Scene->setViewport(vp);
+		Driver->setViewport(vp);
+		Driver->setScissor(s);
+		Driver->clearBuffers();
 		Scene->render();
+		LevelParticle.show();
+
+		vp.init(0,0,1,1);
+		s.init(0,0,1,1);
+		Scene->setViewport(vp);
+		Driver->setViewport(vp);
+		Driver->setScissor(s);
+		C3DTask::getInstance().scene().getCam().setMatrix(oldmat);
 	}
-	catch (EFile &e)
-	{
-		// This can happen when a texture was badly downloaded
-		if(e.Filename.find("/cache/") != string::npos)
-		{
-			nlwarning("The file '%s' is corrupted, I delete it", e.Filename.c_str());
-			CFile::deleteFile(e.Filename);
-		}
-		else
-		{
-			nlerror("%s / %s", e.what(), e.Filename.c_str());
-		}
-	}
-
-	C3DTask::instance().driver().enableFog(false);
-
-	if(CEntityManager::instance().execute())
-		CEntityManager::instance().renderNames();
-
-//	be.endBloom();
-//	be.endInterfacesDisplayBloom();
+	
+	C3DTask::getInstance().driver().enableFog(false);
+	
+	CEntityManager::getInstance().renderNames();
 }
 
 void C3DTask::release()
 {
-	fi.release();
 	nlassert(Driver);
 	Driver->release();
 }
@@ -393,17 +374,11 @@ bool C3DTask::kbDown(NLMISC::TKey key) const
 	return Driver->AsyncListener.isKeyDown(key);
 }
 
-ucstring C3DTask::kbGetString() const
+std::string C3DTask::kbGetString() const
 {
-	ucstring str = InterfaceListener.line();
-	InterfaceListener.setLine(ucstring(""));
+	string str = InterfaceListener.line();
+	InterfaceListener.setLine("");
 	return str;
-}
-
-void C3DTask::kbAddToString(const ucstring &str)
-{
-	nldebug("adding to the current string '%s'", str.toUtf8().c_str());
-	InterfaceListener.addLine(str);
 }
 
 void C3DTask::clear()

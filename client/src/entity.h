@@ -1,31 +1,38 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-// 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-// Vianney Lecroart - gpl@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
 
-#ifndef MT_ENTITY_H
-#define MT_ENTITY_H
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
 
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
+
+
+//
+// This class manages an entity (player or bot)
+//
+
+#ifndef MTPT_ENTITY
+#define MTPT_ENTITY
 
 //
 // Includes
 //
 
 #include <deque>
+#include <string>
+#include <list>
 
 #include <nel/misc/vector.h>
 #include <nel/misc/matrix.h>
@@ -33,12 +40,10 @@
 #include <nel/3d/u_instance.h>
 #include <nel/3d/u_particle_system_instance.h>
 
-#include "interpolator.h"
+#include "global.h"
 #include "sound_manager.h"
-#include "level_manager.h"
-#include "../../common/lua_nel.h"
-#include "../../common/constant.h"
-#include "../../common/lua_utility.h"
+#include "interpolator.h"
+#include "entity_lua_proxy.h"
 
 
 //
@@ -54,146 +59,122 @@ using NLMISC::CMatrix;
 //
 
 class CEntityManager;
+class CEntityProxy;
 
 class CEntity
 {
 public:
 
-	virtual ~CEntity() { delete Interpolator; Interpolator = 0; }
-
 	enum TEntity { Unknown, Player };	// Player is bot or client
 	
 	void		update();
-	void		renderName(bool all = false) const;
+	void		renderName() const;
 	void		close();
-	void		swapOpenClose(bool ps = true);
+	void		swapOpenClose();
 	void		collideWhenFly(NLMISC::CVector &pos);
-	void		collideWhenWater();
+	void		collisionWithWater(bool col);
 	bool        openClose() {return OpenClose;};
 	bool		isLocal();
 	void		setIsLocal(bool local);
 	
-	// return true if the entity collided with water or when fly
-	bool		collided();
-
-	void		playSound(CSoundManager::TSound sound);
-
-	// accessors
+	// accessor
 
 	uint8				 id() const { return Id; }
-//	uint8				 rank() const { return Rank; }
-//	void				 rank(uint8 r) { Rank = r; }
+	uint8				 rank() const { return Rank; }
+	void				 rank(uint8 r) { Rank = r; }
 	TEntity				 type() const { return Type; }
-	const ucstring		&name() const { return Name; }
+	const std::string	&name() const { return Name; }
 	sint32				 currentScore() const { return CurrentScore; }
-	void				 setCurrentScore(sint32 score) { CurrentScore = score; }
-	sint32				 lastGameScore() const { return LastGameScore; }
-	void				 setLastGameScore(sint32 score) { LastGameScore = score; }
+	void				 currentScore(sint32 score) { CurrentScore = score; }
 	sint32				 totalScore() const { return TotalScore; }
-	void				 setTotalScore(sint32 score);
+	void				 totalScore(sint32 score);
 	const NLMISC::CRGBA	&color() const { return Color; }
-	void				 setColor(const NLMISC::CRGBA &col);
-	const string		&texture() const { return Texture; }
-	void				 setTexture(const string &path);
-	uint16				 ping() const { return Ping.getSmoothValue(); }
-	void				 setPing(uint16 ping) { Ping.addValue(ping); }
+	void  color(const NLMISC::CRGBA &col);
+	const std::string	&texture() const { return Texture; }
+	uint16				 ping() const { return Ping; }
+	void				 ping(uint16 ping) { Ping = ping; }
 	
 	bool				 spectator() const { return Spectator; }
-	void				 setSpectator(bool b) { Spectator = b; }
+	void				 spectator(bool b) { Spectator = b; }
 	bool				 ready() const { return Ready; }
-	void				 setReady(bool b) { Ready = b; }
+	void				 ready(bool b) { Ready = b; }
 	
 	void				 load3d();
-
-	uint8				 team() const { return Team; }
-	void				 setTeam(uint8 team);
 
 	void				 fadeOpenParticleColorTo(const NLMISC::CRGBA &color,float duration);
 	void				 fadeCloseParticleColorTo(const NLMISC::CRGBA &color,float duration);
 
-	CInterpolator		&interpolator() const;
+	CExtendedInterpolator &interpolator() const;
 
 	uint8				 startPointId() const { return StartPointId; }
-	void				 setStartPointId(uint8 spid);
+	void				 startPointId(uint8 spid);
 	bool				 namePosOnScreen(CVector &res);
 
-	bool				 fullVersion() const { return FullVersion; }
-
 	NL3D::UInstance		CloseMesh, OpenMesh;
-
+	CEntityProxy		*LuaProxy;
+	
 	NL3D::UParticleSystemInstance TraceParticleOpen;
 	NL3D::UParticleSystemInstance TraceParticleClose;
 	NL3D::UParticleSystemInstance ImpactParticle;
+	
+	NLMISC::CVector		 LastSent2MePos;
+	NLMISC::CVector		 LastSent2OthersPos;
 
-// 	NLMISC::CVector		 LastSent2MePos;
-// 	NLMISC::CVector		 LastSent2OthersPos;
-
-	float				 ArrivalTime;
-
-	ucstring			 addChatLine;
+	std::string			 addChatLine;
 	bool				 addOpenCloseKey;
 	CCrashEvent			 addCrashEventKey;
-
-	bool				CollidedWithWater;
-
 private:
-
+	
 	NLMISC::CRGBA	OriginalColor;
 	NLMISC::CRGBA   FadeOpenParticleColor;
 	NLMISC::CRGBA   FadeOpenParticleStartColor;
 	float           FadeOpenParticleDuration;
 	float           FadeOpenParticleStartTime;
-
+	
 	NLMISC::CRGBA   FadeCloseParticleColor;
 	NLMISC::CRGBA   FadeCloseParticleStartColor;
 	float           FadeCloseParticleDuration;
 	float           FadeCloseParticleStartTime;
+	
+	TEntity			Type;
+	uint8			Id;
+	uint8			StartPointId;
+	uint8			Rank;
+	std::string		Name;
+	std::string		MeshName;
+	std::string		Trace;
+	NLMISC::CRGBA	Color;
+	std::string		Texture;
+	sint32			CurrentScore;
+	sint32			TotalScore;
+	uint16			Ping;
+	bool			OpenClose; // open=true, close=false
 
-	TEntity			 Type;
-	uint8			 Id;
-	uint8			 StartPointId;
-//	uint8			 Rank;
-	ucstring		 Name;
-	string			 MeshName;
-	string			 Trace;
-	NLMISC::CRGBA	 Color;
-	string			 Texture;
-	sint32			 CurrentScore;
-	sint32			 LastGameScore;
-	sint32			 TotalScore;
-	NLMISC::CValueSmootherTemplate<uint16> Ping;
-	bool			 OpenClose; // open=true, close=false
-
-	bool			 showCollideWhenFly;
-	NLMISC::CVector	 showCollideWhenFlyPos;
-
-	CMatrix			 ObjMatrix;
-	CInterpolator	*Interpolator;
-	bool			 FullVersion;
-
+	bool			showCollideWhenFly;
+	NLMISC::CVector	showCollideWhenFlyPos;
+	
+	CMatrix			ObjMatrix;
+	CExtendedInterpolator *Interpolator;
+	
 	// private ctor because only CEntityManager can create a CEntity
 	CEntity();
+	virtual ~CEntity();
 
 	void reset();
 	void sessionReset();
 	void sessionStart();
-
-	void init(TEntity type, const ucstring &name, sint32 totalScore, NLMISC::CRGBA &color, const string &texture, const string &meshname, bool spectator, bool isLocal, const string &trace, bool fullversion);
+	void luaInit();
+	void init(TEntity type, const std::string &name, sint32 totalScore, NLMISC::CRGBA &color, const std::string &texture, const std::string &meshname, bool spectator, bool isLocal, const std::string &trace);
 	void id(uint8 nid);
 	void fadeOpenParticleColorUpdate();
 	void fadeCloseParticleColorUpdate();
-
-#ifdef USE_FMOD
-	// contains current playing sound
-	list<FMOD::Channel*>	Channels;
-#endif
-
-
+	
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 // old stuff to clean
 
-
+	std::list<EntitySource*> Channels;
+	void playSound(CSoundManager::TSound SoundID);
 
 //	CSoundManager::CEntitySoundsDescriptor	SoundsDescriptor;
 
@@ -203,40 +184,8 @@ private:
 	bool	Spectator;
 	bool    Ready;
 
-	bool	Collided;
 	friend class CEntityManager;
-
-//////////////////////////////////////////////////////////////////////////
-
-	int setMetatable(lua_State *L);
-	int getUserData(lua_State *luaSession);
-	int setUserData(lua_State *luaSession);
-	int name(lua_State *luaSession);
-	int setCurrentScore(lua_State *luaSession);
-	//int setColor(lua_State *luaSession);
-	int setStartPointId(lua_State *luaSession);
-
-	LUA_BEGIN(CEntity)
-		LUA_BIND(CEntity, setMetatable),
-		LUA_BIND(CEntity, getUserData),
-		LUA_BIND(CEntity, setUserData),
-		LUA_BIND(CEntity, name),
-		LUA_BIND(CEntity, setCurrentScore),
-		LUA_BIND(CEntity, color), LUA_BIND(CEntity, setColor),
-		LUA_BIND(CEntity, setStartPointId),
-		LUA_BIND(CEntity, team), LUA_BIND(CEntity, setTeam),
-	LUA_END
-
-	LUA_ACCESSOR(CLuaRGBA, color, Color);
-
-	LUA_NUMBER_ACCESSOR(uint8, team, Team);
-
-private:
-
-	uint8 Team;
-
-	void				*LuaUserData;
-	uint32				 LuaUserDataRef;
 };
+
 
 #endif

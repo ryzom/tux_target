@@ -1,0 +1,80 @@
+<?xml version="1.0" standalone="no" ?>
+<!-- this is a mtp-target gui resource -->
+<resource>
+	<object class="CGuiFrame" name="loginFrame">
+		<alignment>eAlignCenterHorizontal|eAlignCenterVertical</alignment>
+		<minSize>0,120</minSize>
+		<position>0,60</position>
+		<element>
+			<object class="CGuiVBox" name="vbox">
+				<alignment>eAlignExpandHorizontal|eAlignExpandVertical</alignment>
+				<element>
+					<object class="CGuiText" name="loginTitle">
+						<alignment>eAlignCenterHorizontal|eAlignCenterVertical</alignment>
+						<string> Mtp Target Login </string>
+					</object>
+					<object class="CGuiText" name="loginTitle">
+						<alignment>eAlignCenterHorizontal|eAlignCenterVertical</alignment>
+						<string> 20 characters max, only a-z A-Z [ ] _ - </string>
+					</object>
+					<object class="CGuiHBox" name="hbox1">
+						<alignment>eAlignExpandHorizontal|eAlignCenterVertical</alignment>
+						<element>
+							<object class="CGuiText" name="loginText">
+								<alignment>eAlignLeft|eAlignCenterVertical</alignment>
+								<string>Login </string>
+							</object>
+							<object class="CGuiText" name="loginEntry">
+								<alignment>eAlignRight|eAlignCenterVertical</alignment>
+								<minSize>100,0</minSize>
+								<isMultiline>false</isMultiline>
+								<isEntry>true</isEntry>
+								<isEditable>true</isEditable>
+								<string>skeet</string>
+							</object>
+						</element>
+					</object>
+					<object class="CGuiHBox" name="hbox2">
+						<alignment>eAlignExpandHorizontal|eAlignCenterVertical</alignment>
+						<element>
+							<object class="CGuiText" name="passwordText">
+								<alignment>eAlignLeft|eAlignCenterVertical</alignment>
+								<string>Password </string>
+							</object>
+							<object class="CGuiText" name="passwordEntry">
+								<alignment>eAlignRight|eAlignCenterVertical</alignment>
+								<minSize>100,0</minSize>
+								<isMultiline>false</isMultiline>
+								<isEntry>true</isEntry>
+								<isEditable>true</isEditable>
+								<isPassword>true</isPassword>
+								<string>skeet</string>
+							</object>
+						</element>
+					</object>
+					<object class="CGuiHBox" name="hbox3">
+						<alignment>eAlignExpandHorizontal|eAlignBottom</alignment>
+						<element>
+							<object class="CGuiButton" name="bLogin">
+								<minSize>80,0</minSize>
+								<element>
+									<object class="CGuiText" name="btextLogin">
+										<string>Login</string>
+									</object>
+								</element>
+							</object>
+							<object class="CGuiButton" name="bBack">
+								<minSize>80,0</minSize>
+								<element>
+									<object class="CGuiText" name="btextBack">
+										<string>Back</string>
+									</object>
+								</element>
+							</object>
+						</element>
+					</object>
+				</element>
+			</object>
+		</element>
+	</object>
+</resource>

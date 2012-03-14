@@ -1,21 +1,22 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-// 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-// Vianney Lecroart - gpl@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
 
 
 //
@@ -37,49 +38,38 @@
 HINSTANCE ghInstance = 0;
 #endif
 
-#include <nel/misc/report.h>
-#include <nel/misc/command.h>
+#include <string>
 
-#include <nel/net/tcp_sock.h>
-
+#include "mtp_target.h"
 #include "main.h"
 #include "3d_task.h"
 #include "intro_task.h"
-#include "mtp_target.h"
 #include "task_manager.h"
 #include "network_task.h"
-#include "config_file_task.h"
-
+	
 
 //
 // Namespaces
 //
 	
+using namespace std;
 using namespace NLMISC;
-using namespace NLNET;
-
+	
 
 //
 // Variables
 //
 
-uint8 DisplayDebug = 0;
-bool FollowEntity = true;
+bool DisplayDebug = false;
+bool FollowEntity = false;
 string ReplayFile;
 sint32 AutoServerId = -1;
 
-
-//
-// Functions
-//
-
 string crashcallback()
 {
-	string str;
-	str  = "ServerId="+toString(CIntroTask::instance().serverId())+"\r\n";
-	str += "Login="+login().toUtf8()+"\r\n";
+	std::string str;
 
-	string OS, Proc, Mem, Gfx, Gfx2;
+	std::string OS, Proc, Mem, Gfx, Gfx2;
 	OS = CSystemInfo::getOS().c_str();
 	Proc = CSystemInfo::getProc().c_str();
 	Mem = toString(CSystemInfo::availablePhysicalMemory()) + " | " + toString(CSystemInfo::totalPhysicalMemory());
@@ -101,72 +91,9 @@ string crashcallback()
 	//str += "\r\n";
 	return str;
 }
+uint TaskManagerThreadId = 0;
+uint NetworkThreadId = 0;
 
-string escapeHTML(const string &str)
-{
-	string res;
-	for(uint i = 0; i < str.size(); i++)
-	{
-		if(isalnum(str[i])) res += str[i];
-		else res += toString("%%%02x",str[i]);
-	}
-	return res;
-}
-
-bool sendhtmlreport(const string &smtpServer, const string &from, const string &to, const string &subject, const string &body, const string &attachedFile, bool onlyCheck)
-{
-	string CrashReportServer("www.mtp-target.org");
-	CTcpSock sock;
-	sock.connect(CInetAddress(CrashReportServer, 80));
-
-	breakable
-	{
-		if (!sock.connected())
-		{
-			nlwarning ("Can't connect to http server %s", CrashReportServer.c_str());
-			break;
-		}
-
-		string Content = "subject="+escapeHTML(subject)+"&body="+escapeHTML(body);
-
-		string buffer;
-		buffer += "POST /mt/mt_crash_report.php HTTP/1.0\r\n";
-		buffer += "User-Agent: NeLCrashReport/1.0\r\n";
-		buffer += "Content-Type: application/x-www-form-urlencoded\r\n";
-		buffer += "Content-Length: "+toString(Content.size())+"\r\n\r\n";
-		buffer += Content;
-
-		uint32 size = buffer.size();
-		if (sock.send ((uint8 *)buffer.c_str(), size) != CSock::Ok)
-		{
-			nlwarning ("Can't send data to the server");
-			break;
-		}
-		string res;
-		char c;
-		while (true)
-		{
-			size = 1;
-			
-			if (sock.receive((uint8*)&c, size, false) == CSock::Ok)
-			{
-				if(c == '\n')
-				{
-					nlinfo(res.c_str());
-					res.clear();
-				}
-				else
-					res += c;
-			}
-			else
-			{
-				nlinfo("Connection closed");
-				break;
-			}
-		}
-	}
-	return true;
-}
 
 #ifdef NL_OS_WINDOWS
 
@@ -179,19 +106,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	_CrtSetDbgFlag(tmp);
 */
 	ghInstance = hInstance;
-
-	CConfigFileTask::instance().setTempDirectory();
-	if(NLMISC::CFile::fileExists(CConfigFileTask::instance().tempDirectory()+"log.log")) NLMISC::CFile::deleteFile(CConfigFileTask::instance().tempDirectory()+"log.log");
-	createDebug(CConfigFileTask::instance().tempDirectory().c_str(), true, true);
-	nlinfo("Log in : '%slog.log'", CConfigFileTask::instance().tempDirectory().c_str());
-
 	// Look the command line to see if we have a cookie and a addr
+
 	nlinfo ("args: '%s'", lpCmdLine);
+
 	string cmd = lpCmdLine;
-	ReplayFile.clear();
+
+	ReplayFile = "";
 	AutoServerId = -1;
 	string autoConnectFlag = "--autoconnect:";
-
+	
 	if (cmd.find ("\"") != string::npos)
 	{
 		// it s a replay, remove ""
@@ -203,18 +127,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		string strId = cmd.substr(startIndex,cmd.size()-startIndex);
 		fromString(strId,AutoServerId);
 	}
-	else if(!cmd.empty())
-	{
-		if(CFile::getExtension(cmd) == "mtr" && CFile::fileExists(cmd))
-			ReplayFile = cmd;
-		else
-			nlwarning("File passed in the command line doesn't exists or is not a .mtr '%s'", cmd.c_str());
-	}
+	else
+		ReplayFile = cmd;
 
-	if(!CFile::fileExists("mtp_target_default.cfg") && !IsDebuggerPresent() && !ReplayFile.empty())
+	if(!IsDebuggerPresent() && !ReplayFile.empty())
 	{
 		char exePath  [512] = "";
-		DWORD success = GetModuleFileNameA (NULL, exePath, 512);
+		DWORD success = GetModuleFileName (NULL, exePath, 512);
 		bool found = false;
 		if(success)
 		{
@@ -245,17 +164,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 int main(int argc, char **argv)
 {
 	NLMISC::CApplicationContext myApplicationContext;
-
-	CConfigFileTask::instance().setTempDirectory();
-	if(NLMISC::CFile::fileExists(CConfigFileTask::instance().tempDirectory()+"log.log")) NLMISC::CFile::deleteFile(CConfigFileTask::instance().tempDirectory()+"log.log");
-	createDebug(CConfigFileTask::instance().tempDirectory().c_str(), true, true);
-	nlinfo ("Log in : '%slog.log'", CConfigFileTask::instance().tempDirectory().c_str());
-
 	if (argc == 2)
 	{
 		ReplayFile = argv[1];
-		if(CFile::getExtension(ReplayFile) != "mtr")
-			ReplayFile.clear();
 	}
 
 #ifdef NL_OS_MAC
@@ -275,7 +186,7 @@ int main(int argc, char **argv)
 #endif // NL_OS_MAC
 
 #endif
-
+	
 	string OS, Proc, Mem, Gfx;
 	OS = CSystemInfo::getOS().c_str();
 	Proc = CSystemInfo::getProc().c_str();
@@ -284,9 +195,7 @@ int main(int argc, char **argv)
 	nlinfo("PRC: %s", Proc.c_str());
 	nlinfo("MEM: %s", Mem.c_str());
 
-	setCrashCallback(crashcallback);
-	setReportEmailFunction((void*)sendhtmlreport);
-
+	TaskManagerThreadId = getThreadId();
 	// add the main task
 	CTaskManager::instance().add(CMtpTarget::instance(), 70);
 
@@ -296,3 +205,4 @@ int main(int argc, char **argv)
 	// return
 	return EXIT_SUCCESS;
 }
+

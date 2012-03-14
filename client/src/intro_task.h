@@ -1,24 +1,30 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-// 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-// Vianney Lecroart - gpl@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
 
-#ifndef MT_INTRO_TASK_H
-#define MT_INTRO_TASK_H
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
+
+
+//
+// This is the main class that manages all other classes
+//
+
+#ifndef MTPT_INTRO_TASK_H
+#define MTPT_INTRO_TASK_H
 
 
 //
@@ -26,35 +32,6 @@
 //
 
 #include "gui.h"
-#include "task_manager.h"
-
-
-//
-// Variables
-//
-
-extern uint32		ServerId;
-extern bool		AutoLogin;
-extern bool		ReloadInterfaces;
-
-
-//
-// Functions
-//
-
-void loadFrameDonation();
-void loadFrameError();
-void loadFrameHelp();
-void loadFrameLanguages();
-void loadFrameLogin();
-void loadFrameMessage();
-void loadFrameRegister();
-void loadFrameServerList();
-void loadFrameSettings();
-
-ucstring login();
-void error(const ucstring &reason, bool convert = true);
-void displayMessage(const ucstring &msg, CGuiButtonEventBehaviour *ok = 0, CGuiButtonEventBehaviour *cancel = 0);
 
 
 //
@@ -65,72 +42,67 @@ class CIntroTask : public NLMISC::CSingleton<CIntroTask>, public ITask
 {
 public:
 
-	CIntroTask() { }
-
 	virtual void init();
 	virtual void update();
 	virtual void render();
-	virtual void release() { }
-	virtual string name() const { return "CIntroTask"; }
+	virtual void release();
 
-	void displayLoginFrame();
+	void error(std::string &reason);
+	void reset();
 
-	void doConnection(uint32 serverId);
-	uint32 serverId() const { return ServerId; }
-	bool loadLang();
-	void loadInterfaces();
-};
+	void updateMenu();
+	void updateInit();
+	void updateLoginOnline();
+	void updateLoginOnlan();
+	void updateServerList();
+	void updateConnectionOnLine();
+	void updateConnectionOnLan();
+	
+	virtual std::string name() const { return "CIntroTask"; }
+		
+	void doConnectionOnLine(uint32 serverId);
+	void doConnectionOnLan();
 
-struct CGuiOpenUrlButtonEventBehaviour : public CGuiButtonEventBehaviour
-{
-	CGuiOpenUrlButtonEventBehaviour(const string &url, bool quit=false) : Url(url), Quit(quit) { }
-	virtual ~CGuiOpenUrlButtonEventBehaviour() { }
-	virtual void onPressed()
-	{
-		nlinfo("opening url: '%s'", Url.c_str());
-		NLMISC::openURL(Url.c_str());
-		if(Quit) CTaskManager::instance().exit();
-	}
 private:
-	string Url;
-	bool Quit;
-};
 
-struct CGuiExitButtonEventBehaviour : public CGuiButtonEventBehaviour
-{
-	virtual void onPressed() { CTaskManager::instance().exit(); }
-};
+	enum TState { eMenu, eInit, eLoginOnline, eLoginOnlan, eServerList, eConnectionOnline, eConnectionOnlan, eNone };
+	
+	TState State;
 
-struct CGuiRemoveFrameEventBehaviour : public CGuiButtonEventBehaviour
-{
-	CGuiRemoveFrameEventBehaviour(const std::string &frameName) : FrameName(frameName) {}
-	virtual void onPressed() { CGuiObjectManager::instance().removeFrame(FrameName); }
-private:
-	const std::string FrameName;
-};
+	uint32 ServerId;
 
-struct CGuiAddFrameEventBehaviour : public CGuiButtonEventBehaviour
-{
-	CGuiAddFrameEventBehaviour(const std::string &frameName) : FrameName(frameName) {}
-	virtual void onPressed() { CGuiObjectManager::instance().addFrame(FrameName); }
-private:
-	const std::string FrameName;
-};
+	guiSPG<CGuiFrame> testFrame;
+	
+	guiSPG<CGuiFrame> menuFrame;
+	guiSPG<CGuiButton> howToPlay;
+	guiSPG<CGuiButton> playOnLineButton;
+	guiSPG<CGuiButton> playOnLanButton;
+	guiSPG<CGuiButton> exitButton3;
+	
+	guiSPG<CGuiFrame> loginFrame;
+	guiSPG<CGuiText> loginText;
+	guiSPG<CGuiText> passwordText;
+	guiSPG<CGuiButton> loginButton;
+	guiSPG<CGuiButton> backButton1;
+	guiSPG<CGuiButton> serverListBackButton;
+	guiSPG<CGuiListView> serverListView;
+	
+	guiSPG<CGuiFrame> loginLanFrame;
+	guiSPG<CGuiText> loginLanText;
+	guiSPG<CGuiText> passwordLanText;
+	guiSPG<CGuiText> serverLanText;
+	guiSPG<CGuiButton> loginLanButton;
+	guiSPG<CGuiButton> backLanButton1;
+	
+	guiSPG<CGuiFrame> serverListFrame;
+	guiSPG<CGuiVBox> serverVbox;
+	guiSPG<CGuiButton> backButton2;
+	
+	std::string		Text1, Text2, Error1, Error2;
+	guiSPG<CGuiFrame> _errorServerFrame;
+	uint32 _autoLogin;
 
-struct CGuiDisplayFrameEventBehaviour : public CGuiButtonEventBehaviour
-{
-	CGuiDisplayFrameEventBehaviour(const std::string &frameName) : FrameName(frameName) {}
-	virtual void onPressed() { CGuiObjectManager::instance().displayFrame(FrameName); }
-private:
-	const std::string FrameName;
-};
 
-struct CGuiReplaceFrameEventBehaviour : public CGuiButtonEventBehaviour
-{
-	CGuiReplaceFrameEventBehaviour(const std::string &remove, const std::string &add) : Remove(remove), Add(add) {}
-	virtual void onPressed() { CGuiObjectManager::instance().removeFrame(Remove); CGuiObjectManager::instance().addFrame(Add); }
-private:
-	const std::string Remove, Add;
 };
 
 #endif

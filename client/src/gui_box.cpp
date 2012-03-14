@@ -1,21 +1,22 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-// 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-// Vianney Lecroart - gpl@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
 
 // Includes
 //
@@ -24,6 +25,7 @@
 
 #include "3d_task.h"
 #include "time_task.h"
+#include "resource_manager2.h"
 #include "gui_box.h"
 #include <nel/3d/u_material.h>
 #include "gui_xml.h"
@@ -33,13 +35,25 @@
 // Namespaces
 //
 
-using namespace NLMISC;
+using namespace std;
 using namespace NL3D;
+using namespace NLMISC;
 
 
 //
-// Functions
+// Variables
 //
+
+const char CGuiBox::className[] = "CGuiBox";
+
+Lunar<CGuiBox>::RegType CGuiBox::methods[] = 
+{
+	bind_method(CGuiBox, getName),	
+	bind_method(CGuiBox, getCount),	
+	bind_method(CGuiBox, getElement),	
+	{0,0}
+};
+
 
 int CGuiBox::getName(lua_State *luaSession)
 {
@@ -74,22 +88,22 @@ void CGuiBoxManager::init()
 {
 	
 	string res;
-	res = CPath::lookup("box_debug.tga");
-	_texture = C3DTask::instance().driver().createTextureFile(res);
+	res = CResourceManager::getInstance().get("box_debug.tga");
+	_texture = C3DTask::getInstance().driver().createTextureFile(res);
 	nlassert(_texture);
 	
 	//_texture->setWrapS(UTexture::Clamp);
 	//_textureFrame->setWrapT(UTexture::Clamp);
 	
 	
-	_material = C3DTask::instance().createMaterial();
+	_material = C3DTask::getInstance().createMaterial();
 	_material.setTexture(_texture);
 	_material.setBlend(true);
 	_material.setZFunc(UMaterial::always);
 	_material.setDoubleSided();
 
-	CGuiHBox::xmlRegister();
-	CGuiVBox::xmlRegister();
+	CGuiHBox::XmlRegister();
+	CGuiVBox::XmlRegister();
 	
 }
 	
@@ -120,7 +134,7 @@ NL3D::UMaterial CGuiBoxManager::material()
 CGuiBox::CGuiBox()
 {
 	_spacing = 2;
-	quad.material(CGuiBoxManager::instance().material());
+	quad.material(CGuiBoxManager::getInstance().material());
 }
 
 CGuiBox::~CGuiBox()
@@ -195,7 +209,6 @@ CGuiVBox::~CGuiVBox()
 
 void CGuiVBox::_render(const CVector &pos,CVector &maxSize)
 {
-	H_AUTO2;
 	if(elements.empty()) return;
 	CVector globalPos = globalPosition(pos,maxSize);
 	maxSize = expandSize(maxSize);
@@ -277,12 +290,12 @@ float CGuiVBox::_height()
 		return res;
 }
 
-void CGuiVBox::xmlRegister()
+void CGuiVBox::XmlRegister()
 {
-	CGuiObjectManager::instance().registerClass("CGuiVBox",CGuiVBox::create);
+	CGuiObjectManager::getInstance().registerClass("CGuiVBox",CGuiVBox::Create);
 }
 
-CGuiObject *CGuiVBox::create()
+CGuiObject *CGuiVBox::Create()
 {
 	CGuiObject *res = new CGuiVBox;
 	
@@ -310,7 +323,6 @@ CGuiHBox::~CGuiHBox()
 
 void CGuiHBox::_render(const CVector &pos,CVector &maxSize)
 {
-	H_AUTO2;
 	if(elements.empty()) return;
 	CVector globalPos = globalPosition(pos,maxSize);
 	maxSize = expandSize(maxSize);
@@ -394,19 +406,21 @@ float CGuiHBox::_height()
 }
 
 
-void CGuiHBox::xmlRegister()
+void CGuiHBox::XmlRegister()
 {
-	CGuiObjectManager::instance().registerClass("CGuiHBox",CGuiHBox::create);
+	CGuiObjectManager::getInstance().registerClass("CGuiHBox",CGuiHBox::Create);
 }
 
-CGuiObject *CGuiHBox::create()
+CGuiObject *CGuiHBox::Create()
 {
 	CGuiObject *res = new CGuiHBox;
 	
 	return res;	
 }
 
+
 void CGuiHBox::init(CGuiXml *xml,xmlNodePtr node)
 {
 	CGuiBox::init(xml,node);
 }
+

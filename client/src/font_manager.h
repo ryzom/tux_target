@@ -1,24 +1,30 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-// 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-// Vianney Lecroart - gpl@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
 
-#ifndef MT_FONT_MANAGER_H
-#define MT_FONT_MANAGER_H
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
+
+
+//
+// This is the main class that manages all other classes
+//
+
+#ifndef MTPT_FONT_MANAGER_H
+#define MTPT_FONT_MANAGER_H
 
 
 //
@@ -34,6 +40,19 @@
 // Classes
 //
 
+class CReplaceString
+{
+public:
+	CReplaceString(std::string &search)
+	{
+		this->search = search;
+	}
+	std::string search;
+	NL3D::UMaterial material;
+protected:
+private:
+};
+
 class CFontManager : public NLMISC::CSingleton<CFontManager>, public ITask
 {
 public:
@@ -43,62 +62,39 @@ public:
 	virtual void render() { }
 	virtual void release();
 
-	virtual string name() const { return "CFontManager"; }
+	virtual std::string name() const { return "CFontManager"; }
 
-	enum TextContext
-	{
-		TCDebug,
-		TCChat,
-		TCBig,
-		TCPLayerName,
-		TCGui,
-		NbTC
-	};
+	NL3D::UMaterial &material() { return Material; }
 
-	// x/y in *character* coord 0/0 is top left and 0/1 is one text line below (not one pixel, one text line)
-	void printf(TextContext tc, float x, float y, const char *format, ...);
-	void print(TextContext tc, float x, float y, const ucstring &str, bool replaceSmiley = false);
-	void print(TextContext tc, const NLMISC::CRGBA &col, float x, float y, const ucstring &str, bool replaceSmiley = false);
-	void print3D(TextContext tc, const NLMISC::CRGBA &col, const NLMISC::CVector &pos, const ucstring &str, bool border = true);
-
-	NL3D::UTextContext &textContext(TextContext tc) { return *TC[tc].UTC; }
+	void littlePrintf(float x, float y, const char *format ...);
+	void littlePrintf(const NLMISC::CRGBA &col, float x, float y, const char *format ...);
+	void littlePrint(float x, float y, uint32 count, const char *ch);
+	void printf(const NLMISC::CRGBA &col, float x, float y, float scale, const char *format, ...);
+	void printf3D(const NLMISC::CRGBA &col, const NLMISC::CVector &pos, float scale, const char *format, ...);
+	
+	uint32 fontWidth() const { return FontWidth; }
+	uint32 fontHeight() const { return FontHeight; }
 
 	uint32 guiFontSize() const { return GUIFontSize; }
-	//NL3D::UTextContext	&guiTextContext() const { if(!GUITextContext) throw NLMISC::Exception("NoGUITextContext"); return *GUITextContext; }
 
-	float getStringWidth(TextContext tc, const ucstring &str);
-
-	// return the value that will display the text in the middle of the screen with the TCBig
-	uint16 screenCenterX();
+	NL3D::UTextContext	&guiTextContext() const { nlassert(GUITextContext); return *GUITextContext; }
 
 private:
 
-	uint32 GUIFontSize;
+	void drawSpecial(float x, float y,float width,float height, NL3D::UMaterial &material);
+	sint32 strfind(std::string &str,CReplaceString **found);
+	uint32 FontHeight;
+	uint32 FontWidth;
 
-	struct CTextContext
-	{
-		NL3D::UTextContext *UTC;
-		CHashMap<string, float> Widths;
-	};
+	uint32 GUIFontSize, BigFontSize;
 
-	CTextContext TC[NbTC];
+	NL3D::UTextContext	*LittleTextContext, *BigTextContext, *GUITextContext;
+	
+	NL3D::UTextureFile	*Texture;
+	NL3D::UMaterial		 Material;
 
-	struct CReplaceString
-	{
-		CReplaceString(const ucstring &search)
-		{
-			Search = search;
-		}
-		ucstring Search;
-		NL3D::UMaterial Material;
-		uint32 Width, Height;
-	};
+	std::vector<CReplaceString *> replaceStrings;
 
-	vector<CReplaceString> ReplaceStrings;
-
-	// used to display gfx instead of text (for smiley)
-	void drawSpecial(float x, float y, float width, float height, float size, NL3D::UMaterial &material);
-	sint32 strfind(const ucstring &str, CReplaceString *&found);
 };
 
 #endif

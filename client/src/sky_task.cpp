@@ -1,21 +1,22 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-// 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-// Vianney Lecroart - gpl@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
 
 
 //
@@ -32,6 +33,18 @@
 #include <nel/3d/u_cloud_scape.h>
 #include <nel/3d/u_text_context.h>
 
+#include <nel/3d/nelu.h>
+#include <nel/3d/scene.h>
+#include "time_task.h"
+#include <nel/3d/scene_user.h>
+#include <nel/3d/water_model.h>
+#include <nel/3d/water_shape.h>
+#include <nel/3d/texture_file.h>
+#include <nel/3d/texture_blend.h>
+#include <nel/3d/transform_shape.h>
+#include <nel/3d/water_height_map.h>
+#include <nel/3d/water_pool_manager.h>
+
 #include "3d_task.h"
 #include "sky_task.h"
 #include "time_task.h"
@@ -43,6 +56,7 @@
 #include "task_manager.h"
 #include "entity_manager.h"
 #include "background_task.h"
+#include "resource_manager2.h"
 #include "config_file_task.h"
 
 
@@ -50,15 +64,14 @@
 // Namespaces
 //
 
-using namespace NLMISC;
+using namespace std;
 using namespace NL3D;
+using namespace NLMISC;
 
 
 //
 // Variables
 //
-
-static NL3D::UParticleSystemInstance ps;
 
 
 //
@@ -66,38 +79,36 @@ static NL3D::UParticleSystemInstance ps;
 //
 
 
-CSkyTask::CSkyTask() : ITask(), ShapeName("sky_snow.shape"), SkyScene(0), SkyMesh(0), CloudScape(0)
+CSkyTask::CSkyTask():ITask()
 {
+	shapeName("");
+
+	nelSkyScene   = 0;
+	nelSkyMesh    = 0;
+	nelCloudScape = 0;
 }
 
-void CSkyTask::setSky(const string &name)
-{
-	if(!SkyMesh.empty())
-	{
-		SkyScene->deleteInstance(SkyMesh);
-	}
-
-	SkyMesh = SkyScene->createInstance(CPath::lookup("sky_"+name+".shape"));
-	if (!SkyMesh.empty())
-	{
-		SkyMesh.setTransformMode (UTransformable::DirectMatrix);
-		SkyMesh.setMatrix(CMatrix::Identity);
-	}
-}
 
 void CSkyTask::init()
 {
-	SkyScene = C3DTask::instance().driver().createScene(false);
-	nlassert(SkyScene);
-	SkyScene->getCam().setPerspective(degToRad(CConfigFileTask::instance().configFile().getVar("Fov").asFloat()), 1.33f, 0.15f, 3000.0f);
-	SkyScene->getCam().setTransformMode (UTransformable::DirectMatrix);
+	nelSkyScene = C3DTask::getInstance().driver().createScene(false);
 
-	setSky("snow");
+	nelSkyScene->getCam().setPerspective(degToRad(CConfigFileTask::getInstance().configFile().getVar("Fov").asFloat()), 1.33f, 0.15f, 3000.0f);
+	nelSkyScene->getCam().setTransformMode (UTransformable::DirectMatrix);
 
-	if(CConfigFileTask::instance().configFile().getVar("DisplayClouds").asInt() == 1)
+	string res = CResourceManager::getInstance().get(shapeName());
+	nelSkyMesh = nelSkyScene->createInstance(res);
+	if (!nelSkyMesh.empty())
 	{
-		CloudScape = SkyScene->createCloudScape();
-		SCloudScapeSetup css;
+		nelSkyMesh.setTransformMode (UTransformable::DirectMatrix);
+		nelSkyMesh.setMatrix(CMatrix::Identity);
+	}
+
+////
+	if(CConfigFileTask::getInstance().configFile().getVar("DisplayClouds").asInt() == 1)
+	{
+		nelCloudScape = nelSkyScene->createCloudScape();
+		SCloudScapeSetup css;	
 		css.NbCloud = 50;
 		css.CloudSpeed = 8.0f;
 		css.WindSpeed = 1.5f;
@@ -107,62 +118,72 @@ void CSkyTask::init()
 
 		//css.Ambient = NLMISC::CRGBA (120,150,155,255);
 		//css.Diffuse = NLMISC::CRGBA (220,250,255,255);
-		CloudScape->setNbCloudToUpdateIn80ms(1);
-		CloudScape->setQuality (160.0);
-		//CloudScape->setDebugQuad (true);
-		CloudScape->init(&css);
+		nelCloudScape->setNbCloudToUpdateIn80ms (1);
+		nelCloudScape->setQuality (160.0);
+		//nelCloudScape->setDebugQuad (true);
+		nelCloudScape->init (&css);	
 	}
-
-/*	res = CPath::lookup("sun.ps");
-	ps.cast(C3DTask::instance().scene().createInstance(res));
-	ps.setTransformMode (UTransformable::RotQuat);
-	ps.setOrderingLayer(2);
-	ps.setPos(-1000.0f, 0.0f, 1000.0f);
-	ps.setScale(CVector(1.0f, 1.0f, 1.0f));
-	ps.activateEmitters(true);
-	ps.show();*/
 }
 
 void CSkyTask::update()
 {
 	CMatrix skyCameraMatrix;
 	skyCameraMatrix.identity();
-	skyCameraMatrix = C3DTask::instance().scene().getCam().getMatrix();
+	skyCameraMatrix = C3DTask::getInstance().scene().getCam().getMatrix();
 	skyCameraMatrix.setPos(CVector::Null);
-
-	SkyScene->getCam().setMatrix(skyCameraMatrix);
-
-	SkyScene->animate (CTimeTask::instance().time());
-
-	if (CloudScape)
-		CloudScape->anim (CTimeTask::instance().deltaTime()); // WARNING this function work with screen
+	
+	nelSkyScene->getCam().setMatrix(skyCameraMatrix);
+	
+	nelSkyScene->animate (CTimeTask::getInstance().time());
+	
+	if (nelCloudScape)
+		nelCloudScape->anim (CTimeTask::getInstance().deltaTime()); // WARNING this function work with screen
 }
 
 void CSkyTask::render()
 {
-	C3DTask::instance().driver().clearZBuffer();
-	SkyScene->render ();
-
-	if (CloudScape)
-		CloudScape->render ();
+	C3DTask::getInstance().driver().clearZBuffer();
+	nelSkyScene->render ();
+	
+	// Must clear ZBuffer For incoming rendering.
+	//C3DTask::getInstance().driver().clearZBuffer();
+	
+	if (nelCloudScape)
+		nelCloudScape->render ();
 }
 
 void CSkyTask::release()
 {
-	if(!SkyMesh.empty())
+	if(!nelSkyMesh.empty())
 	{
-		SkyScene->deleteInstance(SkyMesh);
+		nelSkyScene->deleteInstance(nelSkyMesh);
 	}
 
-	if(CloudScape)
+	if(nelCloudScape)
 	{
-		SkyScene->deleteCloudScape(CloudScape);
-		CloudScape = 0;
+		nelSkyScene->deleteCloudScape(nelCloudScape);
+		nelCloudScape = 0;
 	}
 
-	if(SkyScene)
+	if(nelSkyScene)
 	{
-		C3DTask::instance().driver().deleteScene(SkyScene);
-		SkyScene = 0;
+		C3DTask::getInstance().driver().deleteScene(nelSkyScene);
+		nelSkyScene = 0;
 	}
+
+	
 }
+
+
+void CSkyTask::shapeName(std::string shapeName)
+{
+	ShapeName = "sky.shape";
+	if(shapeName.empty()) return;
+	ShapeName = shapeName;
+}
+
+string CSkyTask::shapeName()
+{
+	return ShapeName;
+}
+

@@ -1,21 +1,22 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-// 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-// Vianney Lecroart - gpl@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
 
 
 //
@@ -26,9 +27,7 @@
 
 #include <nel/misc/quat.h>
 #include <nel/misc/common.h>
-#include <nel/misc/variable.h>
 
-#include "graph.h"
 #include "entity.h"
 #include "chat_task.h"
 #include "time_task.h"
@@ -43,29 +42,14 @@
 // Namespaces
 //
 
-using namespace NLMISC;
+using namespace std;
 using namespace NL3D;
-
-
-//
-// Variables
-//
-
-CVariable<sint32> LCT("mtp", "LCT", "lct in second", 0);
-static CVariable<uint32> NbInterpolatorKeys("mtp", "NbInterpolatorKeys", "Adjust the LCT to have this number of key in the array", 2, 0, true);
-double gtStartTime = 0.0;
-double stAddKeyTime = 0.0;
+using namespace NLMISC;
 
 
 //
 // Functions
 //
-
-void resetInterpolator()
-{
-	gtStartTime = 0.0;
-	stAddKeyTime = 0.0;
-}
 
 CCrashEvent CCrashEvent::operator+( const CCrashEvent &other ) const
 {
@@ -82,58 +66,43 @@ CCrashEvent CCrashEvent::operator+( const CCrashEvent &other ) const
 CEntityState::CEntityState()
 {
 	Position = CVector::Null;
-//	OnWater = false;
+	OnWater = false;
 	OpenCloseEvent = false;
-	CrashEvent = CCrashEvent(false,CVector::Null);
-	ChatLine.clear();
-	Direction = CVector::Null;
+	CrashEvent = CCrashEvent(false,CVector::Null);	
+	ChatLine = "";
 }
 
-CEntityState::CEntityState(const CVector &p, /*bool ow,*/ bool oce, const CCrashEvent &ce, const NLMISC::CVector &direction)
+CEntityState::CEntityState(const CVector &p,bool ow, bool oce, const CCrashEvent &ce)
 {
 	Position = p;
-//	OnWater = ow;
+	OnWater = ow;
 	OpenCloseEvent = oce;
 	CrashEvent = ce;
-	ChatLine.clear();
-	Direction = direction;
-
-	if(gtStartTime==0.0)
-	{
-		gtStartTime = CTimeTask::instance().time();
-		stAddKeyTime = 0.0;
-	}
+	ChatLine = "";
 }
 
-CEntityState::CEntityState(const CVector &p, /*bool ow,*/ bool oce, const CCrashEvent &ce, ucstring chatLine, const NLMISC::CVector &direction)
+CEntityState::CEntityState(const CVector &p,bool ow, bool oce, const CCrashEvent &ce, std::string chatLine)
 {
 	Position = p;
-//	OnWater = ow;
+	OnWater = ow;
 	OpenCloseEvent = oce;
 	CrashEvent = ce;
 	ChatLine = chatLine;
-	Direction = direction;
-
-	if(gtStartTime==0.0)
-	{
-		gtStartTime = CTimeTask::instance().time();
-		stAddKeyTime = 0.0;
-	}
 }
 
 CEntityState CEntityState::operator+( const CEntityState &other ) const
 {
-	return CEntityState( Position + other.Position, /*OnWater || other.OnWater,*/ OpenCloseEvent || other.OpenCloseEvent, CrashEvent + other.CrashEvent,ChatLine, Direction + other.Direction);
+	return CEntityState( Position + other.Position , OnWater || other.OnWater, OpenCloseEvent || other.OpenCloseEvent, CrashEvent + other.CrashEvent,ChatLine);
 }
 
 CEntityState operator *( double coef, const CEntityState &value )
 {
-	return CEntityState( (float)coef * value.Position, /*value.OnWater,*/ value.OpenCloseEvent, value.CrashEvent, value.ChatLine, (float)coef * value.Direction);
+	return CEntityState( (float)coef * value.Position , value.OnWater , value.OpenCloseEvent, value.CrashEvent, value.ChatLine);
 }
 
 CEntityState operator*( const CEntityState &value, double coef )
 {
-	return CEntityState( (float)coef * value.Position, /*value.OnWater,*/ value.OpenCloseEvent, value.CrashEvent,value.ChatLine, (float)coef * value.Direction);
+	return CEntityState( (float)coef * value.Position , value.OnWater, value.OpenCloseEvent, value.CrashEvent,value.ChatLine);	
 }
 
 
@@ -143,276 +112,438 @@ CEntityState operator*( const CEntityState &value, double coef )
 //
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-CInterpolator::CInterpolator(/*double dt*/) : CurrentSmoothSpeed(32)
+const double CInterpolator::MinLct = 3.0  * MT_NETWORK_MY_UPDATE_PERIODE;  //less lct time doesnt improve really gameplay
+const double CInterpolator::MaxLct = 12.0 * MT_NETWORK_MY_UPDATE_PERIODE; //if lct > _maxLct, the game become unplayable ...
+
+double CInterpolator::LCT = 0.0;
+
+CInterpolator::CInterpolator(double dt)
 {
 	CurrentPosition        = CVector::Null;
 	CurrentSpeed           = CVector::Null;
 	CurrentDirection       = CVector::Null;
 	CurrentSmoothDirection = CVector::Null;
+	CurrentOnWater         = false;
 	CurrentOpenCloseEvent  = false;
+	CurrentChatLine		   = "";
 	CurrentCrashEvent  = CCrashEvent(false,CVector::Null);
 
-	CurrentRotation        = CVector::Null;
-	CurrentFacing          = 0.0;
-	LastRotationTime       = 0.0;
-
 	LastOpenClose = false;
-	LastCrash = CCrashEvent(false,CVector::Null);
-
+	LastChatLine = "";
+	LastCrash = CCrashEvent(false,CVector::Null);;
+	
 	Entity = 0;
+	DT = dt;
 
-	MaxDistBetween2Keys = CConfigFileTask::instance().configFile().getVar("InterpolatorMaxDistBetween2Keys").asFloat();
+	MaxDistBetween2Keys = CConfigFileTask::getInstance().configFile().getVar("InterpolatorMaxDistBetween2Keys").asFloat();
 
-	Keys.clear();
-//	gtStartTime    = 0.0;
-	ServerTime     = 0.0;
-
-	k1 = Keys.begin();
-	k2 = Keys.begin();
 	reset();
 }
 
-bool CInterpolator::available() const
+CInterpolator::~CInterpolator()
 {
-	return gtStartTime != 0.0;
 }
 
 void CInterpolator::reset()
 {
-	////Keys.clear();
-	////gtStartTime    = 0.0;
-	////ServerTime     = 0.0;
-//	ltNow      = 0.0;
-//	DeltaTime      = 0.0;
-//	ltLastUpdate = 0.0;
-	////Available      = false;
-//	LCT            = 0;
-//	MaxKeyDiffTime = 0.0;
-//	MeanKeyDiffTime  = 0.0;
-
-	CurrentSmoothSpeed.reset();
-	CurrentRotation        = CVector::Null;
-	CurrentFacing          = 0.0;
-	LastRotationTime       = 0.0;
-
-	//nldebug("reset[0x%p] (%f)",this,CTimeTask::instance().time());
+	Keys.clear();
+	StartTime      = 0.0;
+	ServerTime     = 0.0;
+	LocalTime      = 0.0;
+	DeltaTime      = 0.0;
+	LastUpdateTime = 0.0;
+	Available      = false;
+	LCT            = 0.0;
+	MaxKeyDiffTime = 0.0;
+	MeanKeyDiffTime  = 0.0;
+	OutOfKeyCount  = 0;
+	
+//	nlinfo("reset[0x%p] (%f)",this,CTimeTask::getInstance().time());
 }
 
-void CInterpolator::addKey(const CEntityInterpolatorKey &k, bool first)
+void CInterpolator::entity(CEntity *entity)
+{ 
+	Entity = entity;
+}
+
+
+static int fcount = 0;
+void CInterpolator::addKey(const CEntityInterpolatorKey &k)
 {
 	CEntityInterpolatorKey key = k;
 
-	double gtNow = CTimeTask::instance().time();
-
-	if(Entity->id()==CMtpTarget::instance().controler().Camera.getFollowedEntity())
+	double time = CTimeTask::getInstance().time(); //current time
+	if(!Available || StartTime==0.0)
 	{
-		PacketDTGraph.addOneValue (float(k.packetDT()*1000.0f));
-		static double gtLast = 0;
-		if(gtLast != 0)
-		{
-			DTGraph.addOneValue(float(gtNow - gtLast) * 1000.0f);
-		}
-		gtLast = gtNow;
-	}
-/*	else
-	{
-		nlinfo("new key %f %f %f", k.value().Position.x, k.value().Position.y, k.value().Position.z);
-	}
-*/
-	if(first)
-	{
-		if(gtStartTime==0.0)
-		{
-			gtStartTime = gtNow;
-			stAddKeyTime = 0.0;
-		}
-		else
-		{
-			stAddKeyTime += k.packetDT();
-		}
-	}
-
-// gt = global time (seconds since the launch of the game)
-// lt = local time (seconds since the beginning of this level)
-
-//	double ltNow = gtNow - gtStartTime;
-//	if(stAddKeyTime > stNow && ReplayFile.empty())
-//	{
-//		//nlinfo("(%f)start time correction : [0x%p] : %f-%f = %f (%f)",time,this,AddKeyTime,localTime,AddKeyTime-localTime,StartTime);
-//		if(Entity->id()==CMtpTarget::instance().controler().Camera.getFollowedEntity())
-//			nldebug("(%f)addKeyTime[0x%p] too early: %f-%f = %fms (%f)",gtNow,this,stAddKeyTime,stNow,(stAddKeyTime-stNow)*1000,gtStartTime);
-//
-//		gtStartTime -=  stAddKeyTime - ltNow;
-//		ltNow = gtNow - gtStartTime;
-//	}
-
-	key.setServerTime(stAddKeyTime);
-	Keys.push_back(key);
-
-//	if(/*DisplayDebug==3 &&*/ Entity->id()==CMtpTarget::instance().controler().Camera.getFollowedEntity())
-//		nldebug("add a key at the end %f %f", key.serverTime(), ServerTime);
-
-	//double smoothness = 0.9f;
-	//double diffKeyTime = stAddKeyTime - stNow; // diff between expected key time and real key time
-	//double absDiffKeyTime = fabs(diffKeyTime);
-
-	//if(diffKeyTime<0.0f)
-	//	MeanKeyDiffTime = MeanKeyDiffTime * smoothness + absDiffKeyTime * (1.0f - smoothness);
-
-	//if(absDiffKeyTime > MaxKeyDiffTime)
-	//	MaxKeyDiffTime = absDiffKeyTime;
-}
-
-void CInterpolator::dumpPositions() const
-{
-	double gtNow = CTimeTask::instance().time();
-	double ltNow = gtNow - gtStartTime;
-
-	//DeltaTime = ltNow - ltLastUpdate;
-	double DeltaTime = CTimeTask::instance().deltaTime();
-	double st = ltNow - (double(LCT)/1000.0);
-
-	nlwarning("%f %f %f %f %f", gtNow, ltNow, DeltaTime, st, ServerTime);
-
-	nlwarning("nbkey %d", Keys.size());
-	for(deque<CEntityInterpolatorKey>::const_iterator k = Keys.begin(); k != Keys.end(); k++)
-	{
-		nlwarning("%f %f / %f %f %f", (*k).serverTime(), (*k).value().Position.x, (*k).value().Position.y, (*k).value().Position.z);
-	}
-	if(k1 != Keys.end() && k2 != Keys.end())
-	{
-		nlwarning("%f %f / %f %f %f", (*k1).serverTime(), (*k1).value().Position.x, (*k1).value().Position.y, (*k1).value().Position.z);
-		nlwarning("%f %f / %f %f %f", (*k2).serverTime(), (*k2).value().Position.x, (*k2).value().Position.y, (*k2).value().Position.z);
-
-		double remainder = ServerTime - double((*k1).serverTime());
-		double lerpPos = remainder / (*k2).packetDT();
-		CVector pos = CEntityInterpolatorKey::lerp((*k1).value(), (*k2).value(), lerpPos).Position;
-		nlwarning("%f %f %f", pos.x, pos.y, pos.z);
+		StartTime = time;
+		AddKeyTime = 0.0;
 	}
 	else
 	{
-		if(k1 == Keys.end()) nlwarning("k1 end");
-		if(k2 == Keys.end()) nlwarning("k2 end");
+		AddKeyTime += DT; //time the key should arrived
 	}
+	double localTime = time - StartTime;
+	if(AddKeyTime>localTime && ReplayFile.empty())
+	{
+		//nlinfo("(%f)start time correction : [0x%p] : %f-%f = %f (%f)",time,this,AddKeyTime,localTime,AddKeyTime-localTime,StartTime);
+		/*
+		if(Entity->id()==CMtpTarget::getInstance().controler().getControledEntity())
+			nlinfo("(%f)addKeyTime[0x%p] too early: %f-%f = %fms (%f)",time,this,AddKeyTime,localTime,(AddKeyTime-localTime)*1000,StartTime);
+		*/
+		StartTime -=  AddKeyTime - localTime;
+		localTime = time - StartTime;
+	}
+	else
+	{
+		fcount++;
+		/*
+		if((fcount%100) == 0)
+		{
+			nlinfo("_lct = %f",_lct);
+			nlinfo("_meanKeyDiffTime = %f",_meanKeyDiffTime);
+			nlinfo("(%f)addKeyTime[0x%p] : %f-%f = %f (%f)",time,this,_addKeyTime,localTime,_addKeyTime-localTime,_startTime);
+		}
+		*/
+		/*
+		if(Entity->id()==CMtpTarget::getInstance().controler().getControledEntity())
+			nlinfo("(%f)addKeyTime[0x%p] too late : %f-%f = %fms (%f)",time,this,AddKeyTime,localTime,(AddKeyTime-localTime)*1000,StartTime);
+		*/
+	}
+	Available = true;
+	key.ServerTime = AddKeyTime;
+	Keys.push_back(key);
+
+	double smoothNess = 0.9f;
+	double diffKeyTime = AddKeyTime - localTime; //diff between expected key time and real key time
+	double absDiffKeyTime = fabs(diffKeyTime);
+
+	if(diffKeyTime<0.0f)
+		MeanKeyDiffTime = MeanKeyDiffTime * smoothNess + absDiffKeyTime * (1.0f - smoothNess);
+
+	if(absDiffKeyTime > MaxKeyDiffTime)
+		MaxKeyDiffTime = absDiffKeyTime;
 }
 
 void CInterpolator::update()
 {
-//	if(Entity->id()==CMtpTarget::instance().controler().getControledEntity())
-//		autoAdjustLct();
-
-	double gtNow = CTimeTask::instance().time();
-	double ltNow = gtNow - gtStartTime;
-
-	//DeltaTime = ltNow - ltLastUpdate;
-	double DeltaTime = CTimeTask::instance().deltaTime();
-	ServerTime = ltNow - (double(LCT)/1000.0);
-	//ltLastUpdate = ltNow;
-
-	if(ReplayFile.empty())
-	{
-		// remove out of date keys
-		do
-		{
-			k1 = Keys.begin();
-			if(k1 == Keys.end()) break;
-			k2 = k1 + 1;
-			if(k2 == Keys.end()) break;
-			if((*k1).serverTime() >= ServerTime || (*k2).serverTime() >= ServerTime) break;
-			//		if(/*DisplayDebug==3 &&*/ Entity->id()==CMtpTarget::instance().controler().Camera.getFollowedEntity())
-			//			nldebug("remove first key %f %f %f", (*k1).serverTime(), ServerTime, (*k2).serverTime());
-			Keys.pop_front();
-		}
-		while(true);
-
-		// adjust the LCT depending on how many keys are in the array
-		if(Keys.size() > NbInterpolatorKeys) LCT = LCT - 1;
-		else if(Keys.size() < NbInterpolatorKeys) LCT = LCT + 1;
-	}
-	else
-	{
-		// move to the good key, one per update or we ll miss some open/close event
-		if(k2 != Keys.end() && (*k2).serverTime() < ServerTime)
-		{
-			k2++;
-			k1 = k2 - 1;
-		}
-
-		if(k1 != Keys.begin() && (*k1).serverTime() >= ServerTime)
-		{
-			k1--;
-			k2 = k1 + 1;
-		}
-
-		LCT = 0;
-	}
-
-	if(Entity->id()==CMtpTarget::instance().controler().Camera.getFollowedEntity())
-	{
-		NbKeysGraph.addOneValue (float(Keys.size()));
-		LCTGraph.addOneValue (float(LCT));
-	}
-
-	if(/*DisplayDebug==3 &&*/ Entity->id()==CMtpTarget::instance().controler().Camera.getFollowedEntity())
-	{
-		//nldebug("%s nbkey: %d time: start %f local %f delta %f server %f", Entity->name().toUtf8().c_str(), Keys.size(), gtStartTime, ltNow, DeltaTime, ServerTime);
-	}
-
-	if(k1 == Keys.end() || (k1+1) == Keys.end())
-	{
-//		if(/*DisplayDebug==3 &&*/ Entity->id()==CMtpTarget::instance().controler().Camera.getFollowedEntity())
-		{
-			//nldebug("***** not enough keys lct: %d nbkey: %d time: start %f local %f delta %f server %f", LCT.get(), Keys.size(), gtStartTime, ltNow, DeltaTime, ServerTime);
-		}
+	if(Keys.size()<2)
 		return;
-	}
+
+	OutOfKeyCount--;
+	if(OutOfKeyCount<0)
+		OutOfKeyCount=0;
+	//nlinfo("outofkeycount = %d ; keysize = %d",_outOfKeyCount,_keys.size());
+	if(Entity->id()==CMtpTarget::getInstance().controler().getControledEntity())
+		autoAdjustLct();
+
+	LocalTime = CTimeTask::getInstance().time() - StartTime;
+	DeltaTime = LocalTime - LastUpdateTime;
+	ServerTime = LocalTime - LCT;
+	LastUpdateTime = LocalTime;
+
 	CurrentPosition        = position(ServerTime);
 	CurrentSpeed           = speed(ServerTime);
-	CurrentSmoothSpeed.addValue(speed(ServerTime).norm());
 	CurrentDirection       = direction(ServerTime);
 	CurrentSmoothDirection = CurrentDirection;
-	CurrentRotation		   = rotation(ServerTime);
-
-	if(/*DisplayDebug==3 &&*/ Entity->id()==CMtpTarget::instance().controler().Camera.getFollowedEntity())
-	{
-//		nldebug("pos %f/%f/%f speed %f/%f/%f dir %f/%f/%f rot %f/%f/%f", CurrentPosition.x, CurrentPosition.y, CurrentPosition.z, CurrentSpeed.x, CurrentSpeed.y, CurrentSpeed.z, CurrentDirection.x, CurrentDirection.y, CurrentDirection.z, CurrentRotation.x, CurrentRotation.y, CurrentRotation.z);
-	}
-
-	// debug position using CSV file
-/*	if(Entity->id()==CMtpTarget::instance().controler().Camera.getFollowedEntity())
-	{
-		static FILE *fp = 0;
-		if(DisplayDebug==3 && !fp)
-		{
-			fp = fopen("trace.csv", "wt");
-		}
-		if(DisplayDebug==3 && fp)
-		{
-			fprintf(fp, "%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f\n", ltNow, (*(Keys.begin())).serverTime(), ServerTime, CurrentFacing, (*(Keys.begin())).value().Position.x, (*(Keys.begin())).value().Position.y, (*(Keys.begin())).value().Position.z, CurrentPosition.x, CurrentPosition.y, CurrentPosition.z, CurrentDirection.x, CurrentDirection.y, CurrentDirection.z);
-		}
-		if(DisplayDebug!=3 && fp)
-		{
-			fclose(fp);
-			fp = 0;
-		}
-	}*/
 
 	bool ocEvent = openCloseEvent(ServerTime);
 	CurrentOpenCloseEvent = ocEvent && (LastOpenClose!=ocEvent);
 	LastOpenClose=ocEvent;
-
+	
 	CCrashEvent CrashEvent = crashEvent(ServerTime);
 	CurrentCrashEvent.Crash = CrashEvent.Crash && (LastCrash.Crash!=CrashEvent.Crash);
 	if(CurrentCrashEvent.Crash)
 		CurrentCrashEvent.Position = CrashEvent.Position;
 	LastCrash=CrashEvent;
 
-	ucstring chatLine1 = chatLine(ServerTime);
+	string chatLine1 = chatLine(ServerTime);
 	if(chatLine1.size() && LastChatLine!=chatLine1)
 	{
-		CChatTask::instance().addLine(chatLine1);
+		CChatTask::getInstance().addLine(chatLine1);
 	}
 	LastChatLine = chatLine1;
+	
+}
+
+
+bool CInterpolator::outOfKey() const
+{
+	return Keys.size()<2 || OutOfKeyCount>10;
+}
+
+CCrashEvent CInterpolator::currentCrashEvent()
+{
+	CCrashEvent res = CurrentCrashEvent;
+	if(CurrentCrashEvent.Crash)
+	{
+		CurrentCrashEvent.Crash = false;
+	}
+	return res;
+}
+
+bool CInterpolator::currentOpenCloseEvent()
+{
+	if(CurrentOpenCloseEvent)
+	{
+		CurrentOpenCloseEvent = false;
+		return true;
+	}
+	return false;
+}
+
+CCrashEvent CInterpolator::crashEvent(double time) 
+{
+	CEntityInterpolatorKey key = Keys.back();
+	return key.value().CrashEvent;
+}
+
+string CInterpolator::chatLine(double time) const
+{
+	CEntityInterpolatorKey key = Keys.back();
+	return key.value().ChatLine;
+}
+
+bool CInterpolator::openCloseEvent(double time) const
+{
+	CEntityInterpolatorKey key = Keys.back();
+	return key.value().OpenCloseEvent;
+}
+
+CVector CInterpolator::position(double time)
+{
+	CEntityInterpolatorKey key = Keys.back();
+	return key.value().Position;
+}
+
+
+CVector CInterpolator::speed(double time)
+{
+	deque<CEntityInterpolatorKey>::reverse_iterator it;
+	it = Keys.rbegin();
+	if(it==Keys.rend()) return(CVector::Null);
+	CEntityInterpolatorKey key2 = *it;
+	it++;
+	if(it==Keys.rend()) return(CVector::Null);
+	CEntityInterpolatorKey key1 = *it;
+	return (key2.value().Position - key1.value().Position) / (float)DT;
+}
+
+CVector CInterpolator::direction(double time)
+{
+	deque<CEntityInterpolatorKey>::reverse_iterator it;
+	it = Keys.rbegin();
+	if(it==Keys.rend()) return(CVector::Null);
+	CEntityInterpolatorKey key2 = *it;
+	it++;
+	if(it==Keys.rend()) return(CVector::Null);
+	CEntityInterpolatorKey key1 = *it;
+	return (key2.value().Position - key1.value().Position);
+}
+
+
+void CInterpolator::autoAdjustLct()
+{
+	LCT = MinLct;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
+//
+//
+///////////////////////////////////////////////////////////////////////////////////////////
+
+CLinearInterpolator::CLinearInterpolator(double dt):CInterpolator(dt)
+{
+}
+
+CLinearInterpolator::~CLinearInterpolator()
+{
+}
+
+
+CCrashEvent CLinearInterpolator::crashEvent(double time) 
+{
+	double remainder = fmod(time,DT);
+	double lerpPos = remainder / DT;
+	CEntityInterpolatorKey nextKey = Keys.back();
+	bool nextKeySet = false;
+	for(deque<CEntityInterpolatorKey>::reverse_iterator it=Keys.rbegin();it!=Keys.rend();it++)
+	{
+		CEntityInterpolatorKey key = *it;
+		if(key.serverTime()<time)
+		{
+			if(!nextKeySet)
+				break;
+			
+			return key.value().CrashEvent;
+		}
+		nextKey = key;
+		nextKeySet = true;
+	}
+	return CInterpolator::crashEvent(time);
+}
+
+bool CLinearInterpolator::openCloseEvent(double time) const
+{
+	double remainder = fmod(time,DT);
+	double lerpPos = remainder / DT;
+	deque<CEntityInterpolatorKey>::const_reverse_iterator it;
+	CEntityInterpolatorKey nextKey = Keys.back();
+	bool nextKeySet = false;
+	for(it=Keys.rbegin();it!=Keys.rend();it++)
+	{
+		CEntityInterpolatorKey key = *it;
+		if(key.serverTime()<time)
+		{
+			if(!nextKeySet)
+				break;
+			
+			return key.value().OpenCloseEvent;
+		}
+		nextKey = key;
+		nextKeySet = true;
+	}
+	return CInterpolator::openCloseEvent(time);
+}
+
+string CLinearInterpolator::chatLine(double time) const
+{
+	double remainder = fmod(time,DT);
+	double lerpPos = remainder / DT;
+	deque<CEntityInterpolatorKey>::const_reverse_iterator it;
+	CEntityInterpolatorKey nextKey = Keys.back();
+	bool nextKeySet = false;
+	for(it=Keys.rbegin();it!=Keys.rend();it++)
+	{
+		CEntityInterpolatorKey key = *it;
+		if(key.serverTime()<time)
+		{
+			if(!nextKeySet)
+				break;
+			
+			return key.value().ChatLine;
+		}
+		nextKey = key;
+		nextKeySet = true;
+	}
+	return CInterpolator::chatLine(time);
+}
+
+
+CVector CLinearInterpolator::position(double time)
+{
+	double remainder = fmod(time,DT);
+	double lerpPos = remainder / DT;
+	CEntityInterpolatorKey nextKey = Keys.back();
+	bool nextKeySet = false;
+	for(deque<CEntityInterpolatorKey>::reverse_iterator it=Keys.rbegin();it!=Keys.rend();it++)
+	{
+		CEntityInterpolatorKey key = *it;
+		if(key.serverTime()<time)
+		{
+			if(!nextKeySet)
+				break;
+
+			CVector dpos = (nextKey.value().Position - key.value().Position );
+			//TODO put 10 into a .cfg variable
+			if(dpos.norm()>MaxDistBetween2Keys) 
+			{
+				nlinfo("drop key : dist between current and last  = %f",dpos.norm());
+				return nextKey.value().Position;
+			}
+			return CEntityInterpolatorKey::lerp(key.value(),nextKey.value(),lerpPos).Position;
+		}
+		nextKey = key;
+		nextKeySet = true;
+	}
+	OutOfKeyCount++;
+	return CInterpolator::position(time);
+}
+
+CVector CLinearInterpolator::speed(double time)
+{
+	double remainder = fmod(time,DT);
+	double lerpPos = remainder / DT;
+	CEntityInterpolatorKey nextKey = Keys.back();
+	bool nextKeySet = false;
+
+	for(std::deque<CEntityInterpolatorKey>::reverse_iterator it=Keys.rbegin(); it!=Keys.rend(); it++)
+	{
+		CEntityInterpolatorKey key = *it;
+		if(key.serverTime()<time)
+		{
+			if(!nextKeySet)
+				break;
+			return (nextKey.value().Position - key.value().Position)  / (float)DT;
+		}
+		nextKey = key;
+		nextKeySet = true;
+	}
+	return CInterpolator::speed(time);
+}
+
+CVector CLinearInterpolator::direction(double time)
+{
+	double remainder = fmod(time,DT);
+	double lerpPos = remainder / DT;
+	CEntityInterpolatorKey nextKey = Keys.back();
+	bool nextKeySet = false;
+	for(deque<CEntityInterpolatorKey>::reverse_iterator it=Keys.rbegin();it!=Keys.rend();it++)
+	{
+		CEntityInterpolatorKey key = *it;
+		if(key.serverTime()<time)
+		{
+			if(!nextKeySet)
+				break;
+			return (nextKey.value().Position - key.value().Position);
+		}
+		nextKey = key;
+		nextKeySet = true;
+	}
+	return CInterpolator::direction(time);
+}
+
+
+void CLinearInterpolator::autoAdjustLct()
+{
+	double lct;
+	lct = MeanKeyDiffTime * 4;
+	lct = max(lct,MinLct);
+	lct = min(lct,MaxLct);
+//	lct = _meanKeyDiffTime + 2 * _dt;
+	LCT = lct;
+//	_lct = 4 * _dt;
+}
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////
+//
+//
+///////////////////////////////////////////////////////////////////////////////////////////
+
+CExtendedInterpolator::CExtendedInterpolator(double dt) : CLinearInterpolator(dt)
+{
+	reset();
+}
+
+CExtendedInterpolator::~CExtendedInterpolator()
+{	
+}
+
+void CExtendedInterpolator::reset()
+{
+	CInterpolator::reset();
+	CurrentRotation        = CVector::Null;
+	CurrentFacing          = 0.0;
+	LastRotationTime       = 0.0;	
+}
+
+void CExtendedInterpolator::update()
+{
+	CInterpolator::update();
+	
+	CurrentRotation = rotation(DeltaTime);
 
 	nlassert(Entity!=0);
 	if(Entity->openClose())
@@ -421,15 +552,15 @@ void CInterpolator::update()
 		{
 			CurrentMatrix.identity();
 			CurrentMatrix.rotateZ((float)CurrentFacing);
-			CurrentMatrix.rotateX(0.5f * (float)Pi * (1.0f - CurrentRotation.x));
+			CurrentMatrix.rotateX(0.5f * (float)NLMISC::Pi * (1.0f - CurrentRotation.x));
 		}
 		else
 		{
 			CurrentMatrix.identity();
 			CurrentMatrix.rotateZ((float)CurrentFacing);
- 			float instantRotX = (float)(-0.5f * CurrentSpeed.z * DeltaTime / GScale - (float)Pi * 0.08f);
- 			float lpos = (float)(5 * DeltaTime / 1.0f);
- 			CurrentRotation.x = (float)rotLerp(CurrentRotation.x, instantRotX, lpos);
+			float instantRotX = (float)(-0.5f * CurrentSpeed.z * DeltaTime / GScale - (float)NLMISC::Pi * 0.08f);
+			float lpos = (float)(5 * DeltaTime / 1.0f);
+			CurrentRotation.x = (float)rotLerp(CurrentRotation.x, instantRotX, lpos);
 			CurrentMatrix.rotateX(CurrentRotation.x);
 		}
 	}
@@ -447,150 +578,95 @@ void CInterpolator::update()
 			CurrentMatrix.rotate(CQuat(CAngleAxis(right, angleX)));
 		}
 	}
-
+	
+	//_currentMatrix.identity();//TODO remove this line
 	CurrentMatrix.setPos(CurrentPosition);
-}
 
-CCrashEvent CInterpolator::crashEvent()
-{
-	CCrashEvent res = CurrentCrashEvent;
-	if(CurrentCrashEvent.Crash)
-	{
-		CurrentCrashEvent.Crash = false;
-	}
-	return res;
-}
 
-bool CInterpolator::openCloseEvent()
-{
-	if(CurrentOpenCloseEvent)
-	{
-		CurrentOpenCloseEvent = false;
-		return true;
-	}
-	return false;
-}
-
-CCrashEvent CInterpolator::crashEvent(double time)
-{
-	//if(Keys.size()<2) return (*Keys.begin()).value().CrashEvent;
-	nlassert(k1 != Keys.end() && k2 != Keys.end());
-
-	double remainder = time - double((*k1).serverTime());
-	double lerpPos = remainder / (*k2).packetDT();
-	return (*k1).value().CrashEvent;
-}
-
-bool CInterpolator::openCloseEvent(double time) const
-{
-	//if(Keys.size()<2) return (*Keys.begin()).value().OpenCloseEvent;
-	nlassert(k1 != Keys.end() && k2 != Keys.end());
-
-	double remainder = time - double((*k1).serverTime());
-	double lerpPos = remainder / (*k2).packetDT();
-	return (*k1).value().OpenCloseEvent;
-}
-
-ucstring CInterpolator::chatLine(double time) const
-{
-	//if(Keys.size()<2) return (*Keys.begin()).value().ChatLine;
-	nlassert(k1 != Keys.end() && k2 != Keys.end());
-
-	double remainder = time - double((*k1).serverTime());
-	double lerpPos = remainder / (*k2).packetDT();
-	return (*k1).value().ChatLine;
-}
-
-CVector CInterpolator::position(double time) const
-{
-	//if(Keys.size()<2) return (*Keys.begin()).value().Position;
-	nlassert(k1 != Keys.end() && k2 != Keys.end());
-
-	double remainder = time - double((*k1).serverTime());
-	double lerpPos = remainder / (*k2).packetDT();
-	return CEntityInterpolatorKey::lerp((*k1).value(), (*k2).value(), lerpPos).Position;
-}
-
-CVector CInterpolator::speed(double time)
-{
-	//if(Keys.size()<2) return CVector::Null;
-	nlassert(k1 != Keys.end() && k2 != Keys.end());
-
-	return ((*k2).value().Position - (*k1).value().Position) / float((*k1).packetDT());
-}
-
-CVector CInterpolator::direction(double time)
-{
-	//if(Keys.size()<2) return CVector::Null;
-	nlassert(k1 != Keys.end() && k2 != Keys.end());
-
-	(*k2).value().Direction = (*k2).value().Position - (*k1).value().Position;
-
-	double remainder = time - double((*k1).serverTime());
-	double lerpPos = remainder / (*k2).packetDT();
-	return CEntityInterpolatorKey::lerp((*k1).value(), (*k2).value(), lerpPos).Direction;
-}
-
-CVector CInterpolator::rotation(double time)
-{
-	CVector dir = CurrentDirection;
+	CVector dir = CurrentDirection;//smoothDirection();
 	dir.z = 0.0f;
-	if(dir.norm() > 0.001f && (CMtpTarget::instance().State == CMtpTarget::eGame || CMtpTarget::instance().spectator()))
+	if(dir.norm() > 0.001f && (CMtpTarget::getInstance().State == CMtpTarget::eGame || CMtpTarget::getInstance().isSpectatorOnly()))
 	{
 		dir.normalize();
-// 		float instantFacing = (float)acos(dir.y);
-// 		if(dir.x > 0.0f) instantFacing = -instantFacing;
-//		CurrentFacing = instantFacing + float(Pi);
-		CurrentFacing = float(atan2(dir.y, dir.x) + Pi/2.0);
+		float instantFacing = (float)acos(dir.y);
+		if(dir.x>0.0f)
+			instantFacing = - instantFacing;
+		instantFacing += (float)NLMISC::Pi;
+		double lpos = 20 * DeltaTime / 1.0f;
+		CurrentFacing = rotLerp(CurrentFacing, instantFacing, lpos);
+		if(Entity->isLocal())
+			CurrentFacing = instantFacing;
 	}
-
-	//if(Keys.size()<2) return CurrentRotation;
-	nlassert(k1 != Keys.end() && k2 != Keys.end());
-
-	if(!Entity->isLocal() && Entity->openClose())
+/*
+	_currentMatrix.identity();
+	_currentMatrix.setPos(_currentPosition);
+	_currentMatrix.rotate(CQuat(CAngleAxis(right(), _currentRotation.x)));
+*/	
+/*
+	if(DisplayDebug)
 	{
-  		double instantRotX = -0.5f * CurrentSpeed.z * (*k2).packetDT() / GScale - (double)Pi * 0.08f;
-  		double lpos = 0.1f * (*k2).packetDT() / 1.0f;
-  		CurrentRotation.x = (float )rotLerp(CurrentRotation.x, instantRotX, lpos);
+		nlinfo("lct = %g, in queue %2d ct %g st %g (dt = %g)", Lct, PositionKeys.size(), LocalTime, ServerTime, deltaTime);
+	}
+*/	
+}
+
+
+CVector CExtendedInterpolator::right() const
+{
+	return CurrentDirection ^ CVector(0,0,1);
+}
+
+CVector CExtendedInterpolator::rotation() const
+{
+	return CurrentRotation;
+}
+
+double CExtendedInterpolator::facing() const
+{
+	return CurrentFacing;
+}
+
+void CExtendedInterpolator::rotation(const CVector &rotation)
+{
+	CurrentRotation = rotation;
+}
+
+
+CMatrix CExtendedInterpolator::getMatrix() const
+{
+	return CurrentMatrix;
+}
+
+CVector CExtendedInterpolator::rotation(double deltaTime)
+{
+	if(Entity->openClose())
+	{
+		double instantRotX = -0.5f * CurrentSpeed.z * deltaTime / GScale - (double)NLMISC::Pi * 0.08f;
+		double lpos = 0.1f * deltaTime / 1.0f;
+		CurrentRotation.x = (float )rotLerp(CurrentRotation.x, instantRotX, lpos);
 	}
 	return CurrentRotation;
 }
 
-double CInterpolator::rotLerp(double rsrc, double rdst, double pos)
+double  CExtendedInterpolator::rotLerp(double rsrc,double rdst,double pos)
 {
-	double nrsrc = fmod((double)rsrc, 2*Pi) + 2*Pi;
-	nrsrc = fmod((double)nrsrc, 2*Pi);
-	double nrdst = fmod((double)rdst, 2*Pi) + 2 * Pi;
-	nrdst = fmod((double)nrdst, 2*Pi);
+	double nrsrc = fmod((double)rsrc, 2*NLMISC::Pi) + 2*NLMISC::Pi;
+	nrsrc = fmod((double)nrsrc, 2*NLMISC::Pi);
+	double nrdst = fmod((double)rdst, 2*NLMISC::Pi) + 2 * NLMISC::Pi ;
+	nrdst = fmod((double)nrdst, 2*NLMISC::Pi);
 	if(nrsrc<nrdst)
 	{
-		if(fabs(nrdst - nrsrc) > Pi)
-			nrdst -= 2*Pi;
+		if(fabs(nrdst - nrsrc) > NLMISC::Pi)
+			nrdst -= 2*NLMISC::Pi;
 	}
 	else
 	{
-		if(fabs(nrsrc - nrdst) > Pi)
-			nrsrc -= 2*Pi;
+		if(fabs(nrsrc - nrdst) > NLMISC::Pi)
+			nrsrc -= 2*NLMISC::Pi;
 	}
 	double ipos = 1.0f - pos;
 
 	double res = (double) (nrdst * pos + nrsrc * ipos);
 	//nlinfo("%f => %f (%f) = %f",nrsrc,nrdst,pos,res);
 	return res;
-}
-
-void CInterpolator::autoAdjustLct()
-{
-/*	sint32 lct;
-	lct = sint32(MeanKeyDiffTime * 4.0 * 1000.0);
-	lct = max(lct, MinLct);
-	lct = min(lct, MaxLct);
-	LCT = lct;*/
-}
-
-const deque<CEntityInterpolatorKey> *CInterpolator::keys(deque<CEntityInterpolatorKey>::const_iterator &key1, deque<CEntityInterpolatorKey>::const_iterator &key2) const
-{
-	key1 = k1;
-	key2 = k2;
-	return &Keys;
 }

@@ -1,38 +1,42 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-// 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-// Vianney Lecroart - gpl@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
 
-#ifndef MT_GUI_OBJECT_H
-#define MT_GUI_OBJECT_H
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
+
+
+//
+// This is the main class that manages all other classes
+//
+
+#ifndef MTPT_GUI_OBJECT_H
+#define MTPT_GUI_OBJECT_H
 
 
 //
 // Includes
 //
 
-#include <libxml/parser.h>
-
 #include <nel/misc/singleton.h>
 
-#include "gui_spg.h"
-#include "level_manager.h"
 #include "gui_mouse_listener.h"
 #include "gui_event_behaviour.h"
+#include "gui_spg.h"
+#include <libxml/parser.h>
 #include "../../common/lua_utility.h"
 
 NLMISC::CVector CVectorMax(const NLMISC::CVector &a, const NLMISC::CVector &b);
@@ -58,6 +62,7 @@ public:
 	};
 
 	CGuiObject();
+	CGuiObject(lua_State *luaSession) {};
 	virtual ~CGuiObject();
 	
 	virtual void init();
@@ -83,12 +88,9 @@ public:
 	virtual void alignment(int alignment);
 	NLMISC::CVector offset(const NLMISC::CVector &maxSize);
 
-	NL3D::UMaterial LoadBitmap(const string &filename);
+	NL3D::UMaterial LoadBitmap(const std::string &filename);
 		
 	//CVector globalPosition()
-
-	void visible(bool vis) { Visible = vis; }
-	bool visible() const { return Visible; }
 
 	bool focused();
 	float minWidth();
@@ -99,28 +101,24 @@ public:
 	NLMISC::CVector minSize();
 	void minSize(const NLMISC::CVector &minSize);
 	
-	string name();
-	string getClassName();
-	void setClassName(const string &cname);
+	std::string name();
+	std::string getClassName();
+	void setClassName(const std::string);
 
 	static CGuiObject *XmlCreateFromNode(CGuiXml *xml,xmlNodePtr node);
 	virtual void init(CGuiXml *xml,xmlNodePtr node);
 		
 	virtual void luaPush(lua_State *L);
 	int getName(lua_State *luaSession);
-
-	LUA_BEGIN(CGuiObject)
-		LUA_BIND(CGuiObject, getName),	
-	LUA_END
-
+	static const char className[];	
+	static Lunar<CGuiObject>::RegType methods[];	
+	
 friend class CGuiXmlManager;	
 friend class CGuiXml;	
-
 protected:
-
 	CGuiXml *_xml;
-	string _name;
-	string _className;
+	std::string _name;
+	std::string _className;
 	virtual float _width() {return 0;};
 	virtual float _height() {return 0;};
 	virtual void _preRender(const NLMISC::CVector &pos, NLMISC::CVector &maxSize);
@@ -133,11 +131,10 @@ private:
 	NLMISC::CVector _minSize;	
 	NLMISC::CVector _renderedSize;	
 	NLMISC::CVector _renderedPos;	
-	bool			Visible;
 };
 
 typedef CGuiObject * (*CreateObjectCB) ();
-typedef map<string,CreateObjectCB> string2CreateFunction;
+typedef std::map<std::string,CreateObjectCB> string2CreateFunction;
 
 
 class CGuiObjectManager : public NLMISC::CSingleton<CGuiObjectManager>
@@ -148,36 +145,19 @@ public:
 	virtual void render();
 	virtual void release();
 
-	void registerClass(const string &className,CreateObjectCB cb);
-	CGuiObject *create(const string &className);
-
+	void registerClass(const std::string &className,CreateObjectCB cb);
+	CGuiObject *create(const std::string &className);
+		
 	CGuiMouseListener &mouseListener();
 	void focus(CGuiObject *object);
 	CGuiObject *focus();
 
-	// object manipulation
-	bool empty() const { return objects.empty(); }
-
-	void clear() { backObjects.clear(); backObjectsChanged=true; }
-	void addFrame(const std::string &frameName) { nlassert(Frames.find(frameName) != Frames.end()); backObjects.push_back(Frames[frameName]); backObjectsChanged=true; }
-	void displayFrame(const std::string &frameName) { clear(); addFrame(frameName); }
-	void removeFrame(const std::string &frameName);
-
-	CGuiXml *loadFrame(const std::string &frameName, void (*uc)() = 0);
-	void registerFrame(const std::string &frameName, CGuiObject *frame);
-
+	std::list<CGuiObject *> objects;
+protected:
 private:
-	list<CGuiObject *> objects;
 	guiSPG<CGuiMouseListener> _mouseListener;
 	CGuiObject *_focus;
 	string2CreateFunction _createFunctionMap;
-
-	list<CGuiObject *> backObjects;
-	bool backObjectsChanged;
-
-	CHashMap<std::string, guiSPG<CGuiObject> > Frames;
-
-	friend class CGuiObject;
 };
 
 

@@ -1,21 +1,22 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-// 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-// Vianney Lecroart - gpl@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
 
 
 //
@@ -29,39 +30,47 @@
 
 #include "level.h"
 #include "mtp_target.h"
+#include "level_manager.h"
+#include "resource_manager2.h"
 #include "entity_manager.h"
-#include "network_task.h"
 #include "config_file_task.h"
-#include "../../common/net_message.h"
 
 
 //
 // Namespaces
 //
 
+using namespace std;
 using namespace NLMISC;
 using namespace NLNET;
 
 
 //
+// Types
+//
+
+
+//
+// Declarations
+//
+
+
+//
+// Variables
+//
+
+//
 // Functions
 //
 
-CLevelManager::CLevelManager() : NLMISC::CSingleton<CLevelManager>(), CurrentLevel(0)
+CLevelManager::CLevelManager() : NLMISC::CSingleton<CLevelManager>()
 {
+	CurrentLevel = 0;
 }
 
 void CLevelManager::init()
 {
 	CurrentLevel = 0;
-}
-
-void CLevelManager::update()
-{
-	if(CurrentLevel)
-	{
-		CurrentLevel->update();
-	}
 }
 
 void CLevelManager::release()
@@ -73,36 +82,32 @@ void CLevelManager::release()
 	}
 }
 
-void CLevelManager::loadLevel(const string &fileName, bool useLookup)
+void CLevelManager::loadLevel(const std::string &fileName)
 {
-	nlinfo("LEVEL: Loading level '%s'", fileName.c_str());
+	nlinfo("Loading level '%s'", fileName.c_str());
+
+
 	if(CurrentLevel!=0)// || CurrentLevel->filename()!=res)
 	{
 		delete CurrentLevel;
 		CurrentLevel = 0;
 	}
 
-	string res;
-	if(useLookup) res = CPath::lookup(fileName, false);
-	else res = fileName;
-	if(res.empty())
-	{
-		nlwarning("LEVEL: level not found");
-
-		// request the level from the server
-		CNetMessage msgout(CNetMessage::Level);
-		CNetworkTask::instance().send(msgout);
-		return;
-	}
-	//if(CMtpTarget::instance().error()) return;
-	//nlassert(!res.empty());
-
+	string res = CResourceManager::getInstance().get(fileName);
+	if(CMtpTarget::getInstance().error()) return;
+	nlassert(!res.empty());
+	
 	CurrentLevel = new CLevel(res);
 	if(!CurrentLevel->valid())
 	{
-		nlwarning("LEVEL: level not valid");
+		nlwarning("level not valid, trying to quit properly");
 		return;
 	}
+
+	//nlassert(CurrentLevel->valid());
+	
+	if(CConfigFileTask::getInstance().configFile().getVar("ForceCRCCheck").asInt())
+		CResourceManagerLan::getInstance().clearCrcCheckTimes();
 }
 
 void CLevelManager::display(CLog *log) const
@@ -121,6 +126,6 @@ void CLevelManager::display(CLog *log) const
 NLMISC_COMMAND(displayLevel, "display the current level", "")
 {
 	if(args.size() != 0) return false;
-	CLevelManager::instance().display(&log);
+	CLevelManager::getInstance().display(&log);
 	return true;
 }

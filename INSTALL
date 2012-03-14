@@ -1,0 +1,28 @@
+
+External libs required
+----------------------
+
+To compile Mtp Target, you needs followings libraries : 
+
+- libxml2 (libxml2-dev)
+- freetype (libfreetype6-dev)
+- openGL 1.2 (mesag3+ggi-dev)
+- STLport 4.5 (libstlport4.5-dev)
+- lua (liblua50-dev)
+
+On Debian you can easily get package : apt-get install <module name>
+You will need some other library : 
+- NeL : see http://www.nevrax.org for more information
+- fmod (optionnal) : http://www.fmod.org/
+- ODE 0.05(not the cvs version) : http://ode.org/
+- Lua script engine : http://www.lua.org/
+
+* Edit Variables.mk to change external library paths and includes
+
+* make update
+
+* make 
+
+* Dynamic libraries needs to be in LD_LIBRARY_PATH variable :
+  export LD_LIBRARY_PATH=$(HOME)/external/nel/lib
+

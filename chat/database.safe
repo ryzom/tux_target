@@ -1,0 +1,58 @@
+
+# <Mtp> Variables
+
+UserNbMax 0
+
+# <Mtp> Groups
+
+# Group|Leader|Level|Name
+
+System|Root|12|<Mtp> Administrators
+HeadArch|Root|11|Top Level Users
+Birthday|Root|10|Happy Birthday!
+Friend|Root|10|HeadArchs' Friends
+Guest|Root|9|Friends' Guests
+Mail|Root|8|New group
+Beep|Root|7|New group
+Robot|Root|6|Cybernetic Users
+Topic|Root|6|New group
+Wall|Root|5|New group
+Shout|Root|4|New group
+Tell|Root|3|New group
+Emote|Root|2|New group
+Register|Root|1|Registered Users
+NoGroup|Root|0|Unregistered Users
+Henri|Root|-1|(seen on TV)
+Banned|Root|-2|Banned Users
+
+# <Mtp> Users
+
+# User|Group|Password|Name|EMail|Formation|RegisterTime|ConnectTime|Birthday|KickNb|KickedNb|LoginNb|TotalTime|LastLoginHost|LastLoginTime|FailureNb|LastFailHost|LastFailTime
+
+Mtp|System|MTLHwlHN1Z552|<Mtp> Server|letouzey@lifl.fr|programme|845278439|942240397|845287200|0|0|21|3595||0|0||0
+Root|System|oPYoELEA8tPJE|<Mtp> Operator|letouzey@lifl.fr|<Unknown>|845278439|942488517|0|39|0|474|45712||0|0||0
+
+# <Mtp> Aliases
+
+# User|Alias|Command
+
+Mtp|Bow|Emote bows gracefully
+Mtp|ChCrypt|Set $1.Crypt $2
+Mtp|ChGroup|Set $1.Group $2
+Mtp|ChLeader|Set $1.Leader $2
+Mtp|Close|Switch Closed
+Mtp|Grin|Emote grins evilly
+Mtp|Hide|Switch Hidden
+Mtp|Laugh|Emote falls down laughing
+Mtp|Protect|Switch Protected
+Mtp|Resident|Switch Resident
+Mtp|Sit|Emote sits down
+Mtp|Sleep|Emote falls fast asleep
+Mtp|Smile|Emote smiles happily
+Mtp|Topic|Set Topic $*
+Mtp|Wave|Emote waves
+
+# <Mtp> Plans
+
+# User|LineNumber|Plan
+

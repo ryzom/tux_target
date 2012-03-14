@@ -1,0 +1,95 @@
+
+  ____ |\________|\_________|\____
+  \   `|   /\__     __/\_____    /
+ _/  \  /  \__/     \_ /_   /   /
+ \____\/    /\___    / _/   ___/
+%%%%%%/____/[SnS]|__/%%\_____/%%%%%
+    
+            presents
+
+  
+           MTP TARGET
+       www.mtp-target.org
+
+
+Introduction
+============
+ Mtp Target is a Monkey Target clone (one of the six mini-games from the video game : Super Monkey Ball).
+After rolling your pingoo ball down a giant ramp, your goal is to hit a target as accurately as possible.
+This game is entierely under GNU GPL Licence. Both client and server run under Windows(tm) and GNU/Linux.
+
+Client/Server network game, up to 16 players can play together.
+There is bot when there is not enough human players, the better the humans players play, the better bots play.
+Player scores are stored on server.
+
+How to Play
+===========
+
+Launching the game
+
+    * Get the install program.
+    * Run mtptarget_launcher.exe.
+    * Enter a login and a password, the first time you login, these informations will be stored into the database
+    * Now you have to choose one of the available server
+    * The game could be automaticaly patched now.
+    * A window with "Press enter to connect to the server" should appear, so press ENTER :).
+    * Once you are into the game you have to wait the current session ends (60 seconds max).
+
+Playing The game
+
+    * At the end of the final count down the session starts.
+    * On the floor, use RIGHT and LEFT arrows to turn, UP and DOWN keys control the speed.
+    * Once you are in the air press CONTROL key to switch to flying mode.
+    * In flying mode UP arrow increase your altitude but decrease your speed.
+    * In flying mode DOWN arrow decrease altitude but increase speed.
+    * Be carreful Don't touch target in flying mode
+    * Near the target press again CONTROL key to switch back to the normal mode.
+    * When every body has land off, the session ends, and you can see your score.
+
+Tips
+
+    * If you are not busy try F9 and F10 keys to see other players, F11 to go back to your pingoo.
+    * Look at the right bar to know you current altitude.
+
+The keys
+
+    * F1 : Display Physic boxes (debug info)
+    * F2 : Make a screenshot
+    * F4 : Display debug infos
+    * F5 : End the current session (admin only command)
+    * F6 : Reset the current session (session scores too) (admin only command)
+    * F9 : Watch next player
+    * F10 : Watch previous player
+    * F11 : Watch your player
+    * TAB : Display scores
+    * ESC : Back to OS world :(
+    * Other keys : Chat with other players
+    * ENTER : Send your sentence to the chat
+
+
+Credits
+
+    * Code : Ace, Muf and Skeet of Melting Pot.
+    * Sounds : Garou of Melting Pot.
+    * Music : Hulud of Digital Murder.
+    * Gfx : 9dan, Paul and Kaiser Foufou.
+    * Additional Gfx : Hades
+    * Alpha Tester : Darky, Dyze, Felix, Grib, R!pper, Snagrot, Uzgrot.
+    * Official Beta Tester : Lithrel and #ryzom.epiknet people
+
+The following librairies have been used
+
+    * NeL 3D engine and framework
+    * ODE physic engine (using OPCODE and dTriList)
+    * fmod sound engine
+    * lua script engine
+    * NSIS for Windows install
+
+
+Remerciement
+============
+
+Boz/GMF for his help with NeL 3d engine.
+Cahanta for her patience.
+Everybody who help us.
+

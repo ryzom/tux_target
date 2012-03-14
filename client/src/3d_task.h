@@ -1,46 +1,44 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-// 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-// Vianney Lecroart - gpl@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
 
-#ifndef MT_3D_TASK_H
-#define MT_3D_TASK_H
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
 
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
+
+
+//
+// This is the main class that manages all other classes
+//
+
+#ifndef MTPT_3D_TASK_H
+#define MTPT_3D_TASK_H
 
 //
 // Includes
 //
-
 #include <nel/misc/singleton.h>
 
 #include <nel/3d/u_scene.h>
-#include <nel/3d/u_texture.h>
 #include <nel/3d/u_instance.h>
+#include <nel/3d/u_texture.h>
 
 #include "mouse_listener.h"
 
 
 //
-// Variables
-//
-
-extern NLMISC::CVariable<bool> Shadow;
-//extern bool FastExit;
-
 //
 // Functions
 //
@@ -62,8 +60,8 @@ public:
 	virtual void render();
 	virtual void release();
 
-	virtual string name() const { return "C3DTask"; }
-
+	virtual std::string name() const { return "C3DTask"; }
+	
 	bool				isDriverAvailable() { return Driver != NULL; }
 
 	NL3D::UDriver		&driver() const { if(!Driver) throw NLMISC::Exception("NoDriver"); return *Driver; }
@@ -80,17 +78,16 @@ public:
 
 	bool				kbPressed(NLMISC::TKey key) const;
 	bool				kbDown(NLMISC::TKey key) const;
-	ucstring			kbGetString() const;
-
-	// only used by the IME to simulate a new character and put it in the kbGetString buffer
-	void				kbAddToString(const ucstring &str);
+	std::string			kbGetString() const;
 
 	void				clear();
 		
 	void				captureCursor(bool b);
-
+	NL3D::UInstance     levelParticle()  { return LevelParticle;};
 	void				clearColor(NLMISC::CRGBA color) { ClearColor = color; }
 	void				takeScreenShot();
+
+	bool EnableExternalCamera;
 
 private:
 
@@ -100,10 +97,11 @@ private:
 
 	uint16					 ScreenWidth;
 	uint16					 ScreenHeight;
+	NLMISC::CRGBA			 AmbientColor;
 	bool					 Fullscreen;
-
 	NLMISC::CRGBA			 ClearColor;
 	C3dMouseListener		*MouseListener;
+	NL3D::UParticleSystemInstance LevelParticle;
 	//bool					 CaptureCursor;
 };
 

@@ -1,6 +1,0 @@
-#!/bin/sh
-
-#rm vgres.*
-#valgrind --suppressions=../mtp-target.supp --suppressions=/usr/lib/valgrind/xfree-4.supp --suppressions=/usr/lib/valgrind/sarge.supp --suppressions=/usr/lib/valgrind/glibc-2.3.supp --logfile=vgres src/client
-
-/home/cahanta/tmp/valgrind-3.3.0/inst/bin/valgrind -v --gen-suppressions=yes --suppressions=../mtp-target2.supp src/client

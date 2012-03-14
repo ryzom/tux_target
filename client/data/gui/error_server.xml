@@ -1,0 +1,35 @@
+<?xml version="1.0" standalone="no" ?>
+<!-- this is a mtp-target gui resource -->
+<resource>
+	<object class="CGuiFrame" name="errorServerFrame">
+		<minSize>400,0</minSize>
+		<position>0,100</position>
+		<alignment>eAlignUp|eAlignCenterHorizontal</alignment>
+		<element>
+			<object class="CGuiVBox" name="vbox">
+				<alignment>eAlignExpandHorizontal|eAlignExpandVertical</alignment>
+				<element>
+					<object class="CGuiText" name="text">
+						<alignment>eAlignExpandHorizontal|eAlignExpandVertical</alignment>
+						<string>Can't connect to TCP server : </string>
+					</object>
+					<object class="CGuiText" name="errorServerReason">
+						<!-- <alignment>eAlignExpandHorizontal|eAlignExpandVertical</alignment> -->
+						<string>file.tga</string>
+					</object>
+					
+					<!--
+					<object class="CGuiButton" name="retry">
+						<minSize>80,0</minSize>
+						<element>
+							<object class="CGuiText" name="txtCancel">
+								<string>Retry</string>
+							</object>
+						</element>
+					</object> 
+					-->
+				</element>
+			</object>
+		</element>
+	</object>
+</resource>

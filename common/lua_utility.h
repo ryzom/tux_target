@@ -1,30 +1,41 @@
-// This file is part of Mtp Target.
-// Copyright (C) 2008 Vialek
-// 
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-// 
-// You should have received a copy of the GNU General Public License along
-// with this program; if not, write to the Free Software Foundation, Inc.,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
-// Vianney Lecroart - gpl@vialek.com
+/* Copyright, 2010 Tux Target
+ * Copyright, 2003 Melting Pot
+ *
+ * This file is part of Tux Target.
+ * Tux Target is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
 
-#ifndef MT_LUA_UTILITY_H
-#define MT_LUA_UTILITY_H
+ * Tux Target is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with Tux Target; see the file COPYING. If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA.
+ */
+
+#ifndef LUA_UTILITY_H
+#define LUA_UTILITY_H
 
 
 //
 // Includes
 //
 
+#include <vector>
+
+extern "C"
+{
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
+};
+
+#include "luna.h"
 #include "lunar.h"
 
 
@@ -32,47 +43,17 @@
 // Classes
 //
 
-class CLua : public NLMISC::CSingleton<CLua>
-{
-public:
-	CLua() : L(0) { }
+// Create a new lua state and loda the lua script 'filename'
+lua_State *luaOpenAndLoad(const std::string &filename);
 
-	// prepare a new lua VM and do inits
-	void init();
-	void update() { }
-	void release();
+lua_State *luaOpen();
 
-	// load and execute a lua file
-	void execute(const std::string &filename);
+bool luaLoad(lua_State * L, const std::string &filename);
 
-	// call the function from the session
-	void call(const std::string &func);
-
-	lua_State *l() { return L; }
-
-	// return true if a global variable named varname exists
-	bool globalVariableExists(const string &varname);
-
-	// display stack
-	string displayStack(bool display = true);
-
-	// check the stack before & after to be sure the stack is in the same state before & after
-	// WARNING: these functions are really slow (10ms for checkBefore in debug)
-	void checkBefore();
-	void checkAfter();
-
-private:
-
-	lua_State *L;
-};
-
-int luaDoBuffer (lua_State *L, const char *buff, size_t size, const char *name);
-int luaDoString (lua_State *L, const char *str);
-
+// Clean and close a lua state
+void luaClose(lua_State *&L);
 
 // Initialize a C variable with a global lua variable
-//
-// All luaGet* gets the value and remove it from the stack
 //
 // for example:
 //
@@ -81,52 +62,35 @@ int luaDoString (lua_State *L, const char *str);
 //
 
 #define luaGetGlobalVariable(_l,_varname)                   \
-{															\
-	CLua::instance().checkBefore();						\
-	lua_getglobal(_l, #_varname);                           \
-	if (lua_isnil(_l, -1))                                  \
-	{                                                       \
-		nlwarning("luaGetGlobal : %s not found",#_varname); \
-		lua_pop(_l, 1);										\
-	}                                                       \
-	else													\
-	{														\
-		luaGetVariable(_l, _varname);						\
-	}														\
-	CLua::instance().checkAfter();						\
-}
+lua_getglobal(_l, #_varname);                               \
+if (lua_isnil(_l, -1))                                      \
+{                                                           \
+	nlwarning("luaGetGlobal : %s not found",#_varname);     \
+	lua_pop(_l, 1);                                         \
+}                                                           \
+else                                                        \
+	luaGetVariable(_l, _varname);
 
-#define luaGetGlobalVector(_l,_varname)							\
-{																\
-	CLua::instance().checkBefore();							\
-	lua_getglobal(_l, #_varname);                               \
-	if (lua_isnil(_l, -1))                                      \
-	{                                                           \
-		nlwarning("luaGetGlobal : %s not found",#_varname);     \
-		lua_pop(_l, 1);											\
-	}                                                           \
-	else                                                        \
-	{															\
-		luaGetVector(_l, _varname);								\
-	}															\
-	CLua::instance().checkAfter();							\
-}
+#define luaGetGlobalVector(_l,_varname)                     \
+lua_getglobal(_l, #_varname);                               \
+if (lua_isnil(_l, -1))                                      \
+{                                                           \
+	nlwarning("luaGetGlobal : %s not found",#_varname);     \
+	lua_pop(_l, 1);                                         \
+}                                                           \
+else                                                        \
+	luaGetVector(_l, _varname);
 
 #define luaGetGlobalVectorWithName(_l,_var,_varname)        \
-{															\
-	CLua::instance().checkBefore();						\
-	lua_getglobal(_l, _varname);                            \
-	if (lua_isnil(_l, -1))                                  \
-	{                                                       \
-		nlwarning("luaGetGlobal : %s not found",#_varname); \
-		lua_pop(_l, 1);										\
-	}                                                       \
-	else                                                    \
-	{														\
-		luaGetVector(_l, _var);								\
-	}														\
-	CLua::instance().checkAfter();						\
-}
+lua_getglobal(_l, _varname);                                \
+if (lua_isnil(_l, -1))                                      \
+{                                                           \
+	nlwarning("luaGetGlobal : %s not found",#_varname);     \
+	lua_pop(_l, 1);                                         \
+}                                                           \
+else                                                        \
+	luaGetVector(_l, _var);
+
 
 // Initialize a C variable with the lua variable on top of the stack
 
@@ -138,18 +102,10 @@ inline void luaGetVariable(lua_State *L, bool &var)
 
 // this macro is used to set luaGetVariable for all number types
 #define IMP_GET_VAR_INT(_a) \
-inline void luaGetVariable(lua_State *L, _a &var)	\
-{													\
-	int isNumber = lua_isnumber(L,-1);				\
-	if(isNumber)									\
-	{												\
-		var = (_a)lua_tonumber(L, -1);				\
-	}												\
-	else											\
-	{												\
-		nlwarning("luaGetVariable(not a number");	\
-	}												\
-	lua_pop(L, 1);									\
+inline void luaGetVariable(lua_State *L, _a &var) \
+{ \
+	var = (_a)lua_tonumber(L, -1); \
+	lua_pop(L, 1); \
 }
 
 IMP_GET_VAR_INT(double);
@@ -161,10 +117,10 @@ IMP_GET_VAR_INT(sint32);
 IMP_GET_VAR_INT(sint16);
 IMP_GET_VAR_INT(sint8);
 
-void luaGetVariable(lua_State *L, string &var);
+void luaGetVariable(lua_State *L, std::string &var);
 
 template<class T>
-void luaGetVector(lua_State *L, vector<T> &var)
+void luaGetVector(lua_State *L, std::vector<T> &var)
 {
 	lua_pushnil(L);
 	while(lua_next(L, -2) != 0)
@@ -173,6 +129,7 @@ void luaGetVector(lua_State *L, vector<T> &var)
 		T v;
 		luaGetVariable(L, v);
 		var.push_back(v);
+		lua_pop(L, 1);  // removes `value'; keeps `key' for next iteration
 	}
 	lua_pop(L, 1);  // removes `key'
 }
@@ -181,219 +138,109 @@ template<class T>
 void luaGetVariable(lua_State *L, T &var)
 {
 	var = *Lunar<T>::check(L, -1);
-	lua_pop(L, 1);
 }
 
+#define CHECK_BEFORE(L) lua_pushnumber(L, 1234.5678)
+#define CHECK_AFTER(L) { nlassert(lua_tonumber(L, -1) == 1234.5678); lua_pop(L, 1); }
+
+int luaGetTB();
+
+
+
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+// OLD SKEET CODE
+#if 0
 
-// This macro must be put in all class that use lunar
-// It creates generic functions
-#define LUA_BEGIN(ClassName) \
-public: \
-	ClassName(lua_State *L) { nlstop; } \
-	static const char *className() { return #ClassName; } \
-	bool methodExists(const string &func) \
-	{ \
-		return Lunar<ClassName>::methodExists(CLua::instance().l(), this, func.c_str()); \
-	} \
-	void call(const string &func, int nargs=0) \
-	{ \
-		H_AUTO(ClassName##LuaCall); \
-		lua_State *L = CLua::instance().l(); \
-		if (L == 0) return; \
-		if (!Lunar<ClassName>::methodExists(L, this, func.c_str())) return; \
-		if (nargs == 0) Lunar<ClassName>::push(L, this); \
-		int res = Lunar<ClassName>::call(L, func.c_str(), nargs); \
-		if (res == -1) \
-		{ \
-			string err = lua_tostring(L, -1); \
-			if (err.empty()) err = "(error with no message)"; \
-			nlerror ("Lunar<ClassName>::call error(%s) : (status = %d) %s", func.c_str(), res, err.c_str()); \
-			return; \
-		} \
-	} \
-	static Lunar<ClassName>::RegType *methods() \
-	{ \
-		static Lunar<ClassName>::RegType __m[] = \
-		{
+template <class T> class CLuaProxy
+{
+public:
+	// member function map
+	struct RegType
+	{
+		const char *name;
+		const int(T::*mfunc)(lua_State *);
+	};
 
-#define LUA_BIND(class, name) {#name, &class::name}
-
-#define LUA_END \
-			{ 0, 0 } \
-		}; \
-		return __m; \
+	// register class T
+	static void reg(lua_State *luaSession)
+	{
+		nlassert(ObjectTag == 0);
+		//lua_register(luaSession, ClassName, &luaProxy<T>::Constructor);
+//		ObjectTag = lua_newtag(luaSession);
+//		lua_pushcfunction(luaSession, &luaProxy<T>::GarbageCollector);
+//		lua_settagmethod(luaSession, ObjectTag, "gc"); // tm to release objects
 	}
 
-// example: LUA_BOOL_ACCESSOR(ok, Ok)
-#define LUA_BOOL_ACCESSOR(func, var) \
-private: int func(lua_State *L) \
-{ \
-	lua_pushboolean(L, int(func())); \
-	return 1; \
-} \
-private: int set##var(lua_State *L) \
-{ \
-	int b = lua_toboolean(L,1); \
-	set##var(bool(b!=0)); \
-	lua_pop(L,1); \
-	return 0; \
-} \
-public:
+	static void unreg(lua_State *luaSession)
+	{
+		ObjectTag = 0;
+	}
+	
+	static int initAndPush(lua_State *luaSession,T *obj)
+	{
+		lua_newtable(luaSession); // new table object
+		lua_pushnumber(luaSession, 0); // userdata obj at index 0
 
-// example: LUA_NUMBER_ACCESSOR(sint32, score, Score)
-#define LUA_NUMBER_ACCESSOR(type, func, var) \
-private: \
-	int func(lua_State *L) \
-	{ \
-		lua_pushnumber(L, lua_Number(func())); \
-		return 1; \
-	} \
-	int set##var(lua_State *L) \
-	{ \
-		lua_Number n = lua_tonumber(L,1); \
-		set##var(type(n)); \
-		lua_pop(L,1); \
-		return 0; \
-	} \
-public:
+		lua_newuserdatabox(luaSession,obj);
+		lua_settag(luaSession,ObjectTag);
+		
+		//lua_pushusertag(luaSession, obj, ObjectTag); // have gc call tm
 
-// example: LUA_STRING_ACCESSOR(shapeName, ShapeName)
-#define LUA_STRING_ACCESSOR(func, var) \
-private: \
-	int func(lua_State *L) \
-	{ \
-		lua_pushstring(L, func().c_str()); \
-		return 1; \
-	} \
-	int set##var(lua_State *L) \
-	{ \
-		const char *str = lua_tostring(L,1); \
-		set##var(string(str)); \
-		lua_pop(L,1); \
-		return 0; \
-	} \
-public:
+		lua_settable(luaSession, -3);
+		
+		// register the member functions
+		for(int i = 0; FunctionList[i].name; i++)
+		{
+			lua_pushstring(luaSession, FunctionList[i].name);
+			lua_pushnumber(luaSession, i);
+			// TODO : look with this function is not found on linux lua5 package 
+			//lua_pushcclosure(luaSession, &luaProxy<T>::Thunk, 1);
+			lua_settable(luaSession, -3);
+			}
+		return 1; // return the table object
+	}
 
-// example: LUA_UCSTRING_ACCESSOR(shapeName, ShapeName)
-#define LUA_UCSTRING_ACCESSOR(func, var) \
-private: \
-	int func(lua_State *L) \
-	{ \
-		lua_pushstring(L, func().toUtf8().c_str()); \
-		return 1; \
-	} \
-	int set##var(lua_State *L) \
-	{ \
-		const char *str = lua_tostring(L,1); \
-		ucstring ucstr; \
-		ucstr.fromUtf8(str); \
-		set##var(ucstr); \
-		lua_pop(L,1); \
-		return 0; \
-	} \
-public:
+	static int ObjectTag; // object tag
+private:
 
-#define LUA_ACCESSOR(type, func, var) \
-private: \
-	int func(lua_State *L) \
-	{ \
-		const type &v = func(); \
-		Lunar<type>::push(L, &v); \
-		return 1; \
-	} \
-	int set##var(lua_State *L) \
-	{ \
-		const type *v = Lunar<type>::check(L, 1); \
-		set##var(*v); \
-		lua_pop(L,1); \
-		return 0; \
-	} \
-public:
+	// member function dispatcher
+	static int thunk(lua_State *luaSession)
+	{
+		// stack = closure(-1), [args...], 'self' table(1)
+		int i = static_cast<int>(lua_tonumber(luaSession, -1));
+		lua_pushnumber(luaSession, 0); // userdata object at index 0
+		lua_gettable(luaSession, 1);
+		T *obj = static_cast<T *>(lua_touserdata(luaSession, -1));
+		lua_pop(luaSession, 2); // pop closure value and obj
+		return (obj->*(FunctionList[i].mfunc))(luaSession);
+	}
 
-// define the string, accessors and lua accessors
-// example STRING_ACCESSOR(name, Name);
-#define STRING_ACCESSOR(func, var) \
-private: string var; \
-public: virtual const string &func() const { return var; } \
-public: virtual void set##var(const string &nvar, bool display=true) { if(var != nvar && display) { nlinfo("LEVEL: set%s changes from %s to %s", #var, var.c_str(), nvar.c_str()); } var = nvar; } \
-private: int func(lua_State *L) \
-{ \
-	lua_pushstring(L, func().c_str()); \
-	return 1; \
-} \
-private: int set##var(lua_State *L) \
-{ \
-	const char *str = lua_tostring(L,1); \
-	bool display = lua_isboolean(L,2) ? (lua_toboolean(L,2)==1) : true; \
-	set##var(string(str), display); \
-	lua_pop(L,1); \
-	return 0; \
-} \
-public:
+	// constructs T objects
+	static int Constructor(lua_State *luaSession)
+	{
+		T *obj= new T(luaSession);
+		return InitAndPush(luaSession,obj);
+	}
 
-// define the number, c++ accessors and lua accessors
-// example: NUMBER_ACCESSOR(uint8, bounce, Bounce)
-#define NUMBER_ACCESSOR(type, func, var) \
-private: type var; \
-public: virtual type func() const { return var; } \
-public: virtual void set##var(type nvar, bool display=true) { if(var != nvar && display) { nlinfo("LEVEL: set%s changes from %s to %s", #var, NLMISC::toString(type(var)).c_str(), NLMISC::toString(type(nvar)).c_str()); } var = nvar; } \
-private: int func(lua_State *L) \
-{ \
-	lua_pushnumber(L, lua_Number(func())); \
-	return 1; \
-} \
-private: int set##var(lua_State *L) \
-{ \
-	lua_Number n = lua_tonumber(L,1); \
-	bool display = lua_isboolean(L,2) ? (lua_toboolean(L,2)==1) : true; \
-	set##var(type(n), display); \
-	lua_pop(L,1); \
-	return 0; \
-} \
-public:
+	// releases objects
+	static int garbageCollector(lua_State *luaSession)
+	{
+		return 0;
+	}
+	
+protected:
 
-// define the bool, accessors and lua accessors
-// example: BOOL_ACCESSOR(ok, Ok)
-#define BOOL_ACCESSOR(func, var) \
-private: bool var; \
-public: virtual bool func() const { return var; } \
-public: virtual void set##var(bool nvar, bool display=true) { if(var != nvar && display) { nlinfo("LEVEL: set%s changes from %s to %s", #var, (var?"true":"false"), (nvar?"true":"false")); } var = nvar; } \
-private: int func(lua_State *L) \
-{ \
-	lua_pushboolean(L, int(func())); \
-	return 1; \
-} \
-private: int set##var(lua_State *L) \
-{ \
-	int b = lua_toboolean(L,1); \
-	bool display = lua_isboolean(L,2) ? (lua_toboolean(L,2)==1) : true; \
-	set##var(bool(b!=0), display); \
-	lua_pop(L,1); \
-	return 0; \
-} \
-public:
+	CLuaProxy(); // hide default constructor
 
-#define ACCESSOR(type, func, var) \
-private: type var; \
-public: virtual type func() const { return var; } \
-public: virtual void set##var(type nvar, bool display=true) { if(var != nvar && display) { nlinfo("LEVEL: set%s changes", #var); } var = nvar; } \
-private: \
-	int func(lua_State *L) \
-	{ \
-		const type &v = func(); \
-		Lunar<type>::push(L, &v); \
-		return 1; \
-	} \
-	int set##var(lua_State *L) \
-	{ \
-		const type *v = Lunar<type>::check(L, 1); \
-		set##var(*v); \
-		lua_pop(L,1); \
-		return 0; \
-	} \
-public:
+	static const char *ClassName;
+	static const RegType FunctionList[];
+};
 
+template <class T> int CLuaProxy<T>::ObjectTag = 0;
 #endif
+
+
+#endif // LUA_UTILITY_H
